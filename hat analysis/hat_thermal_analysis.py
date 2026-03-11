@@ -261,6 +261,26 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
     eq1 = r"\[\alpha f_{view} G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]"
     eq2 = r"\[q_{reduction}=(\alpha_{base}-\alpha_{ant})\,f_{view}\,G,\; E_{equiv}=\frac{q_{reduction}}{COP\cdot 1000}\]"
 
+    max_annual = max((s["annual_kwh_m2"] for s in summaries), default=1.0) or 1.0
+    max_drop = max((s["avg_temp_drop_c"] for s in summaries), default=1.0) or 1.0
+
+    compare_rows = []
+    annual_bars = []
+    drop_bars = []
+    for s in summaries:
+        city = s["city"].title()
+        annual = s["annual_kwh_m2"]
+        drop = s["avg_temp_drop_c"]
+        annual_w = (annual / max_annual) * 100.0
+        drop_w = (drop / max_drop) * 100.0
+        compare_rows.append(f"<tr><td>{city}</td><td>{annual:.2f}</td><td>{drop:.2f}</td></tr>")
+        annual_bars.append(
+            f"<div class=\"bar-row\"><span>{city}</span><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:{annual_w:.1f}%\"></div></div><strong>{annual:.2f}</strong></div>"
+        )
+        drop_bars.append(
+            f"<div class=\"bar-row\"><span>{city}</span><div class=\"bar-track\"><div class=\"bar-fill-alt\" style=\"width:{drop_w:.1f}%\"></div></div><strong>{drop:.2f} °C</strong></div>"
+        )
+
     city_blocks = []
     for s in summaries:
         city_blocks.append(
@@ -319,6 +339,12 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
     .eq {{ background: #f9f4ea; border-radius: 8px; padding: 10px; overflow-x: auto; }}
     table {{ width: 100%; border-collapse: collapse; margin-top: 8px; }}
     th, td {{ border-bottom: 1px solid #efe3d1; text-align: left; padding: 6px; font-size: 0.92rem; }}
+    .compare-wrap {{ margin-top: 14px; background: #fffdfa; border: 1px solid #e9dcc5; border-radius: 10px; padding: 12px; }}
+    .compare-grid {{ display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }}
+    .bar-row {{ display: grid; grid-template-columns: 96px 1fr 80px; gap: 8px; align-items: center; margin: 8px 0; font-size: 0.9rem; }}
+    .bar-track {{ width: 100%; height: 12px; background: #efe3d1; border-radius: 999px; overflow: hidden; }}
+    .bar-fill {{ height: 100%; background: linear-gradient(90deg, #a35f14, #e8a552); }}
+    .bar-fill-alt {{ height: 100%; background: linear-gradient(90deg, #2b8a3e, #80c67b); }}
   </style>
 </head>
 <body>
@@ -331,6 +357,24 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
       <div class=\"eq\">{eq1}</div>
       <div class=\"eq\">{eq2}</div>
     </details>
+
+    <div class=\"compare-wrap\">
+      <div class=\"title\" style=\"font-size:1.15rem; margin-bottom:6px;\">Side-By-Side City Comparison</div>
+      <div class=\"compare-grid\">
+        <div>
+          <h3>Annual Equivalent Savings (kWh/m²/year)</h3>
+          {''.join(annual_bars)}
+        </div>
+        <div>
+          <h3>Average Temperature Drop (°C)</h3>
+          {''.join(drop_bars)}
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>City</th><th>Annual Equivalent Savings (kWh/m²/year)</th><th>Avg Temp Drop (°C)</th></tr></thead>
+        <tbody>{''.join(compare_rows)}</tbody>
+      </table>
+    </div>
 
     {''.join(city_blocks)}
   </div>
@@ -422,4 +466,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 

@@ -6,7 +6,7 @@
   <title>Roof PVGIS Hourly Analysis</title>
   <script>
     window.MathJax = {
-      tex: { inlineMath: [['\(', '\)']], displayMath: [['\[', '\]']] },
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
       svg: { fontCache: 'global' }
     };
   </script>
@@ -26,6 +26,12 @@
     .eq { background: #eef4f2; border-radius: 8px; padding: 10px; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th, td { border-bottom: 1px solid #e5ece8; text-align: left; padding: 6px; font-size: 0.92rem; }
+    .compare-wrap { margin-top: 14px; background: #fff; border: 1px solid #d7e1dc; border-radius: 10px; padding: 12px; }
+    .compare-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .bar-row { display: grid; grid-template-columns: 96px 1fr 80px; gap: 8px; align-items: center; margin: 8px 0; font-size: 0.9rem; }
+    .bar-track { width: 100%; height: 12px; background: #e6efea; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #0b7285, #4fb3c3); }
+    .bar-fill-alt { height: 100%; background: linear-gradient(90deg, #2b8a3e, #80c67b); }
   </style>
 </head>
 <body>
@@ -38,6 +44,24 @@
       <div class="eq">\[\alpha G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]</div>
       <div class="eq">\[q_{in}=\max(0,U(T_s-T_{in})),\; q_{saved}=q_{in,base}-q_{in,ant},\; E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]</div>
     </details>
+
+    <div class="compare-wrap">
+      <div class="title" style="font-size:1.15rem; margin-bottom:6px;">Side-By-Side City Comparison</div>
+      <div class="compare-grid">
+        <div>
+          <h3>Annual Savings (kWh/m²/year)</h3>
+          <div class="bar-row"><span>Marseille</span><div class="bar-track"><div class="bar-fill" style="width:54.3%"></div></div><strong>8.65</strong></div><div class="bar-row"><span>Cairo</span><div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div><strong>15.92</strong></div>
+        </div>
+        <div>
+          <h3>Average Temperature Drop (°C)</h3>
+          <div class="bar-row"><span>Marseille</span><div class="bar-track"><div class="bar-fill-alt" style="width:66.6%"></div></div><strong>3.57 °C</strong></div><div class="bar-row"><span>Cairo</span><div class="bar-track"><div class="bar-fill-alt" style="width:100.0%"></div></div><strong>5.36 °C</strong></div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>City</th><th>Annual Savings (kWh/m²/year)</th><th>Avg Temp Drop (°C)</th></tr></thead>
+        <tbody><tr><td>Marseille</td><td>8.65</td><td>3.57</td></tr><tr><td>Cairo</td><td>15.92</td><td>5.36</td></tr></tbody>
+      </table>
+    </div>
 
     
       <details>
