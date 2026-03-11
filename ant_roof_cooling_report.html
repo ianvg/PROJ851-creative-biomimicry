@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sahara Ant Hair Roof Cooling Analysis</title>
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --accent: #0b7285;
+      --ok: #2b8a3e;
+      --muted: #5b6b6b;
+      --border: #d7e1dc;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: radial-gradient(circle at top right, #d9ecef 0%, var(--bg) 45%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      line-height: 1.4;
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; }
+    .title { margin-bottom: 8px; font-size: 1.8rem; font-weight: 700; }
+    .subtitle { margin: 0 0 20px; color: var(--muted); }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .label { font-size: 0.86rem; color: var(--muted); }
+    .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+    .ok { color: var(--ok); }
+    details {
+      margin-top: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+    code, pre {
+      font-family: Consolas, "Courier New", monospace;
+      background: #f1f5f3;
+      border-radius: 8px;
+    }
+    pre { padding: 12px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Sahara Desert Ant Hair Roof Cooling Analysis</div>
+    <p class="subtitle">Click sections below to inspect equations, input values, and detailed outputs.</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Baseline roof surface temperature</div>
+        <div class="value">81.12 °C</div>
+      </div>
+      <div class="card">
+        <div class="label">Ant-hair-inspired roof surface temperature</div>
+        <div class="value">52.28 °C</div>
+      </div>
+      <div class="card">
+        <div class="label">Roof temperature drop</div>
+        <div class="value ok">28.84 °C</div>
+      </div>
+      <div class="card">
+        <div class="label">Cooling electricity saved</div>
+        <div class="value ok">2.60 kWh/m²/month</div>
+        <div style="margin-top:4px;color:var(--muted);">31.15 kWh/m²/year</div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Equation 1: Roof surface steady-state energy balance</summary>
+      <pre>alpha*G + h*(Ta - Ts) + eps*sigma*(Tsky^4 - Ts^4) = 0</pre>
+      <p>
+      where:<br>
+      alpha = solar absorptance, G = solar irradiance (W/m²), h = convection coefficient (W/m²K),<br>
+      eps = IR emissivity, sigma = Stefan-Boltzmann constant, Ta/Ts/Tsky in Kelvin.
+      </p>
+    </details>
+
+    <details>
+      <summary>Equation 2: Cooling load reduction at roof-to-indoor boundary</summary>
+      <pre>q_in = max(0, U*(Ts - Tin))
+q_saved = q_in_baseline - q_in_ant
+E_saved = (q_saved/COP)*hours/1000</pre>
+      <p>
+      where U is roof U-value (W/m²K), Tin indoor setpoint, COP cooling system coefficient of performance.
+      </p>
+    </details>
+
+    <details>
+      <summary>Input values used</summary>
+      <pre>{
+  "solar_irradiance_w_m2": 900.0,
+  "ambient_temp_c": 42.0,
+  "sky_temp_c": 15.0,
+  "convective_h_w_m2k": 8.0,
+  "baseline_solar_absorptance": 0.85,
+  "baseline_ir_emissivity": 0.9,
+  "ant_solar_absorptance": 0.35,
+  "ant_ir_emissivity": 0.95,
+  "indoor_temp_c": 24.0,
+  "roof_u_value_w_m2k": 1.2,
+  "cooling_cop": 3.2,
+  "daytime_hours_per_day": 8.0,
+  "days_per_month": 30.0,
+  "months_per_year": 12.0
+}</pre>
+    </details>
+
+    <details>
+      <summary>Computed outputs</summary>
+      <pre>{
+  "baseline_roof_temp_c": 81.11916106194258,
+  "ant_roof_temp_c": 52.27698555216193,
+  "roof_temp_drop_c": 28.842175509780645,
+  "cooling_power_saved_w_m2": 34.61061061173678,
+  "electric_savings_kwh_m2_month": 2.5957957958802584,
+  "electric_savings_kwh_m2_year": 31.1495495505631
+}</pre>
+    </details>
+  </div>
+</body>
+</html>
