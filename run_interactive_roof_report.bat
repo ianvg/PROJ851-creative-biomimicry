@@ -14,7 +14,7 @@ set "SCRIPT_DIR=%~dp0"
   --f-surrounding 0.05 ^
   --ground-c 48 ^
   --surrounding-c 38 ^
-  --html "%SCRIPT_DIR%interactive_roof_report.html"
+  --html "%SCRIPT_DIR%Reports\interactive_roof_report.html"
 
 if errorlevel 1 (
   echo.
@@ -24,6 +24,6 @@ if errorlevel 1 (
 
 echo.
 echo Interactive roof report created:
-echo %SCRIPT_DIR%interactive_roof_report.html
+echo %SCRIPT_DIR%Reports\interactive_roof_report.html
 
 endlocal

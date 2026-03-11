@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hourly Analysis Reports</title>
+  <style>
+    :root {
+      --bg: #f2f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    .nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .nav a:hover { text-decoration: underline; }
+    .title { font-size: 2rem; font-weight: 700; margin: 0 0 8px; }
+    .subtitle { margin: 0 0 18px; color: var(--muted); }
+    .list { display: grid; gap: 14px; }
+    .card { display: block; padding: 16px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none; }
+    .card:hover { border-color: var(--accent); }
+    .name { color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+    .desc { color: var(--muted); margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="../index.html">Reports Home</a><a href="../interactive_roof_report.html">Interactive Roof Report</a></div>
+    <p class="title">Hourly Analysis</p>
+    <p class="subtitle">Hourly PVGIS roof-analysis outputs moved from <code>roof analysis</code>.</p>
+    <div class="list">
+      <a class="card" href="roof_hourly_cairo.csv"><div class="name">roof_hourly_cairo.csv</div><p class="desc">Hourly CSV data</p></a>
+      <a class="card" href="roof_hourly_marseille.csv"><div class="name">roof_hourly_marseille.csv</div><p class="desc">Hourly CSV data</p></a>
+      <a class="card" href="roof_hourly_name.csv"><div class="name">roof_hourly_name.csv</div><p class="desc">Hourly CSV data</p></a>
+      <a class="card" href="roof_hourly_rome.csv"><div class="name">roof_hourly_rome.csv</div><p class="desc">Hourly CSV data</p></a>
+      <a class="card" href="roof_hourly_toulouse.csv"><div class="name">roof_hourly_toulouse.csv</div><p class="desc">Hourly CSV data</p></a>
+      <a class="card" href="ant_roof_pvgis_hourly_cairo.html"><div class="name">ant_roof_pvgis_hourly_cairo.html</div><p class="desc">Hourly HTML report</p></a>
+      <a class="card" href="ant_roof_pvgis_hourly_marseille.html"><div class="name">ant_roof_pvgis_hourly_marseille.html</div><p class="desc">Hourly HTML report</p></a>
+      <a class="card" href="ant_roof_pvgis_hourly_name.html"><div class="name">ant_roof_pvgis_hourly_name.html</div><p class="desc">Hourly HTML report</p></a>
+      <a class="card" href="ant_roof_pvgis_hourly_report.html"><div class="name">ant_roof_pvgis_hourly_report.html</div><p class="desc">Hourly HTML report</p></a>
+      <a class="card" href="ant_roof_pvgis_hourly_rome.html"><div class="name">ant_roof_pvgis_hourly_rome.html</div><p class="desc">Hourly HTML report</p></a>
+      <a class="card" href="ant_roof_pvgis_hourly_toulouse.html"><div class="name">ant_roof_pvgis_hourly_toulouse.html</div><p class="desc">Hourly HTML report</p></a>
+    </div>
+  </div>
+</body>
+</html>

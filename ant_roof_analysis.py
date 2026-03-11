@@ -645,6 +645,7 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
 """
         )
 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     html = f"""<!doctype html>
 <html lang=\"en\">
 <head>
@@ -762,7 +763,7 @@ def main() -> None:
         cities = [c.strip().lower() for c in args.cities.split(",") if c.strip()]
         summaries: list[dict[str, Any]] = []
 
-        html_path = args.html or Path("ant_roof_pvgis_hourly_report.html")
+        html_path = args.html or Path("Reports") / "ant_roof_pvgis_hourly_report.html"
 
         for city in cities:
             hourly_rows, summary = hourly_analysis_for_city(city, args)
@@ -823,7 +824,7 @@ def main() -> None:
     print(f"Building electricity savings: {monthly:.2f} kWh/month")
     print(f"Building electricity savings: {yearly:.2f} kWh/year")
 
-    html_path = args.html or Path("interactive_roof_report.html")
+    html_path = args.html or Path("Reports") / "interactive_roof_report.html"
     render_hourly_html([single_run_summary(result)], html_path, inputs)
     print(f"HTML report: {html_path.resolve()}")
 
