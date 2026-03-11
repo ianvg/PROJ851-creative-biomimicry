@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hat Hourly Benefit Analysis - Marseille</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    body { font-family: Segoe UI, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f5f7f6; color: #1f2a2a; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .title { font-size: 1.7rem; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { margin-top: 0; color: #556; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+    .card { background: white; border: 1px solid #dbe3df; border-radius: 12px; padding: 12px; }
+    .label { color: #5c6c6b; font-size: .9rem; }
+    .value { font-size: 1.35rem; font-weight: 700; margin-top: 4px; }
+    details { margin-top: 12px; background: white; border: 1px solid #dbe3df; border-radius: 10px; padding: 12px; }
+    summary { cursor: pointer; font-weight: 600; color: #0b7285; }
+    .eq { background: #eef4f2; border-radius: 8px; padding: 10px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border-bottom: 1px solid #e6ece9; text-align: left; padding: 6px; font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Hat Hourly Benefit Analysis - Marseille</div>
+    <p class="subtitle">PVGIS TMY at lat 43.2763, lon 5.3815</p>
+
+    <div class="grid">
+      <div class="card"><div class="label">Average Temperature Drop</div><div class="value">2.21 °C</div></div>
+      <div class="card"><div class="label">Annual Savings</div><div class="value">163.41 kWh/m²/year</div></div>
+    </div>
+
+    <details open>
+      <summary>Equations Used</summary>
+      <div class="eq">\[\alpha f_{view} G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]</div>
+      <div class="eq">\[q_{reduction}=(\alpha_{base}-\alpha_{ant})\,f_{view}\,G,\; E_{equiv}=\frac{q_{reduction}}{COP\cdot 1000}\]</div>
+    </details>
+
+    <details>
+      <summary>Monthly Savings (kWh/m²)</summary>
+      <table><thead><tr><th>Month</th><th>kWh/m²</th></tr></thead><tbody><tr><td>01</td><td>5.998</td></tr>
+<tr><td>02</td><td>7.519</td></tr>
+<tr><td>03</td><td>12.735</td></tr>
+<tr><td>04</td><td>17.820</td></tr>
+<tr><td>05</td><td>20.705</td></tr>
+<tr><td>06</td><td>21.308</td></tr>
+<tr><td>07</td><td>21.705</td></tr>
+<tr><td>08</td><td>19.924</td></tr>
+<tr><td>09</td><td>15.941</td></tr>
+<tr><td>10</td><td>9.570</td></tr>
+<tr><td>11</td><td>5.457</td></tr>
+<tr><td>12</td><td>4.733</td></tr></tbody></table>
+    </details>
+
+    <details>
+      <summary>Average Benefit By Hour Of Day</summary>
+      <table><thead><tr><th>Hour</th><th>Avg Temp Drop (°C)</th><th>Avg Savings (kWh/m²/h)</th></tr></thead><tbody><tr><td>00:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>01:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>02:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>03:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>04:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>05:00</td><td>0.44</td><td>0.0026</td></tr>
+<tr><td>06:00</td><td>1.35</td><td>0.0098</td></tr>
+<tr><td>07:00</td><td>2.68</td><td>0.0203</td></tr>
+<tr><td>08:00</td><td>4.33</td><td>0.0342</td></tr>
+<tr><td>09:00</td><td>5.72</td><td>0.0462</td></tr>
+<tr><td>10:00</td><td>6.65</td><td>0.0541</td></tr>
+<tr><td>11:00</td><td>6.82</td><td>0.0588</td></tr>
+<tr><td>12:00</td><td>6.46</td><td>0.0586</td></tr>
+<tr><td>13:00</td><td>5.80</td><td>0.0546</td></tr>
+<tr><td>14:00</td><td>4.76</td><td>0.0451</td></tr>
+<tr><td>15:00</td><td>3.54</td><td>0.0328</td></tr>
+<tr><td>16:00</td><td>2.19</td><td>0.0195</td></tr>
+<tr><td>17:00</td><td>1.05</td><td>0.0088</td></tr>
+<tr><td>18:00</td><td>0.34</td><td>0.0022</td></tr>
+<tr><td>19:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>20:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>21:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>22:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>23:00</td><td>0.09</td><td>0.0000</td></tr></tbody></table>
+    </details>
+  </div>
+</body>
+</html>
