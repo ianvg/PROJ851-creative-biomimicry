@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Round Hat Thermal Analysis</title>
+  <style>
+    :root {
+      --bg: #f6f2e8;
+      --ink: #2d2417;
+      --card: #fffdfa;
+      --accent: #a35f14;
+      --ok: #2b8a3e;
+      --muted: #6a5c46;
+      --border: #e9dcc5;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: radial-gradient(circle at top right, #ffe8b8 0%, var(--bg) 44%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      line-height: 1.4;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .title { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+    .subtitle { margin-top: 0; color: var(--muted); }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+    .label { font-size: 0.86rem; color: var(--muted); }
+    .value { font-size: 1.48rem; font-weight: 700; margin-top: 6px; }
+    .ok { color: var(--ok); }
+    details { margin-top: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+    pre { background: #f9f4ea; border-radius: 8px; padding: 12px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Round Hat Cooling Analysis (Beach Full Sun)</div>
+    <p class="subtitle">Click sections to inspect equations, assumptions, input values, and outputs.</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Baseline hat shell temperature</div>
+        <div class="value">59.60 °C</div>
+      </div>
+      <div class="card">
+        <div class="label">Ant-inspired hat shell temperature</div>
+        <div class="value">42.73 °C</div>
+      </div>
+      <div class="card">
+        <div class="label">Estimated shell temperature drop</div>
+        <div class="value ok">16.88 °C</div>
+      </div>
+      <div class="card">
+        <div class="label">Equivalent cooling benefit</div>
+        <div class="value ok">17.59 kWh/m²/month</div>
+        <div style="margin-top:4px;color:var(--muted);">211.14 kWh/m²/year</div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Equation 1: Hat shell energy balance</summary>
+      <pre>alpha * f_view * G + h*(Ta - Ts) + eps*sigma*(Tsky^4 - Ts^4) = 0</pre>
+      <p>
+      For a round hat, <code>f_view</code> accounts for curved geometry reducing effective direct solar load.
+      </p>
+    </details>
+
+    <details>
+      <summary>Equation 2: Equivalent cooling metric</summary>
+      <pre>q_reduction = (alpha_base - alpha_ant) * f_view * G
+E_equiv = (q_reduction / COP) * hours / 1000</pre>
+      <p>
+      This converts heat-flux reduction to an equivalent cooling-electricity intensity basis for comparison.
+      </p>
+    </details>
+
+    <details>
+      <summary>Input values</summary>
+      <pre>{
+  "solar_irradiance_w_m2": 1000.0,
+  "ambient_temp_c": 35.0,
+  "sky_temp_c": 20.0,
+  "convective_h_w_m2k": 12.0,
+  "solar_view_factor": 0.68,
+  "baseline_solar_absorptance": 0.8,
+  "baseline_ir_emissivity": 0.9,
+  "ant_solar_absorptance": 0.34,
+  "ant_ir_emissivity": 0.95,
+  "cooling_cop": 3.2,
+  "equivalent_sun_hours_per_day": 6.0,
+  "days_per_month": 30.0,
+  "months_per_year": 12.0
+}</pre>
+    </details>
+
+    <details>
+      <summary>Computed outputs</summary>
+      <pre>{
+  "baseline_shell_temp_c": 59.60237968713045,
+  "ant_shell_temp_c": 42.72722154855728,
+  "shell_temp_drop_c": 16.87515813857317,
+  "equivalent_heat_reduction_w_m2": 312.79999999999995,
+  "equivalent_electric_savings_kwh_m2_month": 17.594999999999995,
+  "equivalent_electric_savings_kwh_m2_year": 211.13999999999996
+}</pre>
+    </details>
+  </div>
+</body>
+</html>

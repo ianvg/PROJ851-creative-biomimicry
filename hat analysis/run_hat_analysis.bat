@@ -2,10 +2,10 @@
 setlocal
 
 set "SCRIPT_DIR=%~dp0"
-set "PY_SCRIPT=%SCRIPT_DIR%ant_roof_analysis.py"
+set "PY_SCRIPT=%SCRIPT_DIR%hat_thermal_analysis.py"
 
 if not exist "%PY_SCRIPT%" (
-  echo Error: Could not find ant_roof_analysis.py in %SCRIPT_DIR%
+  echo Error: Could not find hat_thermal_analysis.py in %SCRIPT_DIR%
   exit /b 1
 )
 
@@ -21,6 +21,6 @@ popd
 
 echo.
 echo Done. Report generated at:
-echo %SCRIPT_DIR%ant_roof_cooling_report.html
+echo %SCRIPT_DIR%hat_analysis_report.html
 
 endlocal
