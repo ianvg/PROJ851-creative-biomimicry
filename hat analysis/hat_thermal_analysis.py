@@ -10,24 +10,19 @@ SIGMA = 5.670374419e-8  # W/m^2/K^4
 
 @dataclass
 class HatInputs:
-    # Beach summer design point (default assumptions)
     solar_irradiance_w_m2: float = 1000.0
     ambient_temp_c: float = 35.0
     sky_temp_c: float = 20.0
     convective_h_w_m2k: float = 12.0
 
-    # Round hat geometry factor: only part of curved shell normal to sun at any moment
     solar_view_factor: float = 0.68
 
-    # Baseline hat optical properties (typical dark fabric)
     baseline_solar_absorptance: float = 0.80
     baseline_ir_emissivity: float = 0.90
 
-    # Ant-hair-inspired coating properties
     ant_solar_absorptance: float = 0.34
     ant_ir_emissivity: float = 0.95
 
-    # Optional cooling-equivalent metric (not building energy, just normalized thermal benefit)
     cooling_cop: float = 3.2
     equivalent_sun_hours_per_day: float = 6.0
     days_per_month: float = 30.0
@@ -98,7 +93,6 @@ def analyze(i: HatInputs) -> HatResults:
     ant_c = k_to_c(ant_k)
     drop_c = base_c - ant_c
 
-    # Equivalent heat reduction by avoiding absorbed solar flux.
     q_solar_base = i.baseline_solar_absorptance * i.solar_view_factor * i.solar_irradiance_w_m2
     q_solar_ant = i.ant_solar_absorptance * i.solar_view_factor * i.solar_irradiance_w_m2
     q_reduction = max(0.0, q_solar_base - q_solar_ant)
@@ -126,6 +120,13 @@ def render_html(inputs: HatInputs, results: HatResults, path: Path) -> None:
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>Round Hat Thermal Analysis</title>
+  <script>
+    window.MathJax = {{
+      tex: {{ inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]']] }},
+      svg: {{ fontCache: 'global' }}
+    }};
+  </script>
+  <script defer src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>
   <style>
     :root {{
       --bg: #f6f2e8;
@@ -141,7 +142,7 @@ def render_html(inputs: HatInputs, results: HatResults, path: Path) -> None:
       padding: 24px;
       background: radial-gradient(circle at top right, #ffe8b8 0%, var(--bg) 44%);
       color: var(--ink);
-      font-family: "Segoe UI", Tahoma, sans-serif;
+      font-family: \"Segoe UI\", Tahoma, sans-serif;
       line-height: 1.4;
     }}
     .wrap {{ max-width: 980px; margin: 0 auto; }}
@@ -155,6 +156,13 @@ def render_html(inputs: HatInputs, results: HatResults, path: Path) -> None:
     details {{ margin-top: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }}
     summary {{ cursor: pointer; color: var(--accent); font-weight: 600; }}
     pre {{ background: #f9f4ea; border-radius: 8px; padding: 12px; overflow-x: auto; }}
+    .equation {{
+      font-size: 1.04rem;
+      background: #f9f4ea;
+      border-radius: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+    }}
   </style>
 </head>
 <body>
@@ -184,16 +192,22 @@ def render_html(inputs: HatInputs, results: HatResults, path: Path) -> None:
 
     <details>
       <summary>Equation 1: Hat shell energy balance</summary>
-      <pre>alpha * f_view * G + h*(Ta - Ts) + eps*sigma*(Tsky^4 - Ts^4) = 0</pre>
+      <div class=\"equation\">\\[
+      \alpha f_{{view}} G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{{sky}}^4 - T_s^4) = 0
+      \\]</div>
       <p>
-      For a round hat, <code>f_view</code> accounts for curved geometry reducing effective direct solar load.
+      For a round hat, \\(f_{{view}}\\) accounts for curved geometry reducing effective direct solar load.
       </p>
     </details>
 
     <details>
       <summary>Equation 2: Equivalent cooling metric</summary>
-      <pre>q_reduction = (alpha_base - alpha_ant) * f_view * G
-E_equiv = (q_reduction / COP) * hours / 1000</pre>
+      <div class=\"equation\">\\[
+      q_{{reduction}} = (\alpha_{{base}} - \alpha_{{ant}})\,f_{{view}}\,G
+      \\]</div>
+      <div class=\"equation\">\\[
+      E_{{equiv}} = \frac{{q_{{reduction}}}}{{COP}}\cdot\frac{{hours}}{{1000}}
+      \\]</div>
       <p>
       This converts heat-flux reduction to an equivalent cooling-electricity intensity basis for comparison.
       </p>

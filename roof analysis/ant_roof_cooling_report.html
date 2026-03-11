@@ -4,6 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sahara Ant Hair Roof Cooling Analysis</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <style>
     :root {
       --bg: #f4f7f5;
@@ -50,6 +57,13 @@
       border-radius: 8px;
     }
     pre { padding: 12px; overflow-x: auto; }
+    .equation {
+      font-size: 1.04rem;
+      background: #f1f5f3;
+      border-radius: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
@@ -79,21 +93,29 @@
 
     <details>
       <summary>Equation 1: Roof surface steady-state energy balance</summary>
-      <pre>alpha*G + h*(Ta - Ts) + eps*sigma*(Tsky^4 - Ts^4) = 0</pre>
+      <div class="equation">\[
+      \alpha G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^4 - T_{s}^4) = 0
+      \]</div>
       <p>
       where:<br>
-      alpha = solar absorptance, G = solar irradiance (W/m²), h = convection coefficient (W/m²K),<br>
-      eps = IR emissivity, sigma = Stefan-Boltzmann constant, Ta/Ts/Tsky in Kelvin.
+      \(\alpha\) = solar absorptance, \(G\) = solar irradiance (W/m²), \(h\) = convection coefficient (W/m²K),<br>
+      \(\varepsilon\) = IR emissivity, \(\sigma\) = Stefan-Boltzmann constant, \(T_a\), \(T_s\), \(T_{sky}\) in Kelvin.
       </p>
     </details>
 
     <details>
       <summary>Equation 2: Cooling load reduction at roof-to-indoor boundary</summary>
-      <pre>q_in = max(0, U*(Ts - Tin))
-q_saved = q_in_baseline - q_in_ant
-E_saved = (q_saved/COP)*hours/1000</pre>
+      <div class="equation">\[
+      q_{in} = \max\left(0, U\,(T_s - T_{in})\right)
+      \]</div>
+      <div class="equation">\[
+      q_{saved} = q_{in,baseline} - q_{in,ant}
+      \]</div>
+      <div class="equation">\[
+      E_{saved} = \frac{q_{saved}}{COP}\cdot\frac{hours}{1000}
+      \]</div>
       <p>
-      where U is roof U-value (W/m²K), Tin indoor setpoint, COP cooling system coefficient of performance.
+      where \(U\) is roof U-value (W/m²K), \(T_{in}\) indoor setpoint, and \(COP\) cooling system coefficient of performance.
       </p>
     </details>
 

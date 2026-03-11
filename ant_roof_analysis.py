@@ -234,7 +234,7 @@ def render_html(inputs: ModelInputs, results: ModelResults, output_path: Path) -
     <details>
       <summary>Equation 1: Roof surface steady-state energy balance</summary>
       <div class=\"equation\">\\[
-      \\alpha G + h\\,(T_a - T_s) + \\varepsilon\\sigma\\,(T_{sky}^{4} - T_{s}^{4}) = 0
+      \\alpha G + h\\,(T_a - T_s) + \\varepsilon\\sigma\\,(T_{{sky}}^{4} - T_{{s}}^{4}) = 0
       \\]</div>
       <p>
       where:<br>
