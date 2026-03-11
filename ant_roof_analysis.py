@@ -185,6 +185,21 @@ def building_envelope_areas(inputs: ModelInputs) -> dict[str, float]:
     }
 
 
+def building_heat_loss_coefficients(inputs: ModelInputs) -> dict[str, float]:
+    areas = building_envelope_areas(inputs)
+    roof_h_w_k = inputs.roof_u_value_w_m2k * areas["roof_area_m2"]
+    wall_h_w_k = inputs.wall_u_value_w_m2k * areas["opaque_wall_area_m2"]
+    window_h_w_k = inputs.window_u_value_w_m2k * areas["window_area_m2"]
+    door_h_w_k = inputs.door_u_value_w_m2k * areas["door_area_m2"]
+    return {
+        "roof_h_w_k": roof_h_w_k,
+        "wall_h_w_k": wall_h_w_k,
+        "window_h_w_k": window_h_w_k,
+        "door_h_w_k": door_h_w_k,
+        "total_h_w_k": roof_h_w_k + wall_h_w_k + window_h_w_k + door_h_w_k,
+    }
+
+
 def building_cooling_load_w(roof_surface_c: float, inputs: ModelInputs) -> float:
     areas = building_envelope_areas(inputs)
     roof_delta_c = max(0.0, roof_surface_c - inputs.indoor_temp_c)
@@ -428,6 +443,7 @@ def _building_geometry_plot(inputs: ModelInputs) -> str:
     west_h = inputs.west_wall_height_m
     roof_rise = west_h - east_h
     roof_area = roof_area_m2(inputs)
+    h_values = building_heat_loss_coefficients(inputs)
 
     west_south_bottom = (0.0, 0.0, 0.0)
     west_north_bottom = (0.0, length, 0.0)
@@ -524,17 +540,79 @@ def _building_geometry_plot(inputs: ModelInputs) -> str:
       <div class="plotly-wrap">{plot_div}</div>
       <p class="subtitle" style="margin: 8px 0 0;">Length: {length:.1f} m, width: {width:.1f} m, west height: {west_h:.1f} m, east height: {east_h:.1f} m, roof rise: {roof_rise:.1f} m, sloped roof area: {roof_area:.1f} m^2.</p>
       <p class="subtitle" style="margin: 4px 0 0;">The mesh is loaded with trimesh and displayed with plotly. Window outlines are shown on the north, east, and west sides, with a south door outline.</p>
+      <p class="subtitle" style="margin: 4px 0 0;">Building heat-loss coefficients: H_roof = {h_values['roof_h_w_k']:.2f} W/K, H_wall = {h_values['wall_h_w_k']:.2f} W/K, H_window = {h_values['window_h_w_k']:.2f} W/K, H_door = {h_values['door_h_w_k']:.2f} W/K, H_total = {h_values['total_h_w_k']:.2f} W/K.</p>
     </div>
     """
 
 
+
+
+def single_run_summary(result: ModelResults) -> dict[str, Any]:
+    monthly_kwh = result.building_electric_savings_kwh_hour * 24.0 * 30.0
+    annual_kwh = result.building_electric_savings_kwh_hour * 24.0 * 365.0
+    hourly_avg = [
+        {
+            "hour": hour,
+            "avg_temp_drop_c": result.roof_temp_drop_c,
+            "avg_building_kwh_hour": result.building_electric_savings_kwh_hour,
+        }
+        for hour in range(24)
+    ]
+    h_values = building_heat_loss_coefficients(ModelInputs())
+    return {
+        "city": "single case",
+        "annual_kwh_building": annual_kwh,
+        "monthly_kwh_building": {month: monthly_kwh for month in range(1, 13)},
+        "avg_temp_drop_c": result.roof_temp_drop_c,
+        "hourly_avg": hourly_avg,
+        "roof_h_before_w_k": h_values["roof_h_w_k"],
+        "roof_h_after_w_k": h_values["roof_h_w_k"],
+        "wall_h_before_w_k": h_values["wall_h_w_k"],
+        "wall_h_after_w_k": h_values["wall_h_w_k"],
+        "window_h_before_w_k": h_values["window_h_w_k"],
+        "window_h_after_w_k": h_values["window_h_w_k"],
+        "door_h_before_w_k": h_values["door_h_w_k"],
+        "door_h_after_w_k": h_values["door_h_w_k"],
+        "total_h_before_w_k": h_values["total_h_w_k"],
+        "total_h_after_w_k": h_values["total_h_w_k"],
+    }
+
+
+def _roof_assumptions_block(inputs: ModelInputs) -> str:
+    eq_base_1 = rf"$$\alpha_{{base}} = {inputs.baseline_solar_absorptance:.2f}, \quad \varepsilon_{{base}} = {inputs.baseline_ir_emissivity:.2f}$$"
+    eq_base_2 = rf"$$q_{{roof,base}} = {inputs.baseline_solar_absorptance:.2f}G + h(T_{{air}} - T_s) + q_{{LWR,base}}$$"
+    eq_base_3 = rf"$$q_{{LWR,base}} = {inputs.baseline_ir_emissivity:.2f}\sigma [ F_{{gnd}}\frac{{T_s^4 - T_{{gnd}}^4}}{{T_s - T_{{gnd}}}}(T_{{gnd}} - T_s) + F_{{sky}}\frac{{T_s^4 - T_{{sky}}^4}}{{T_s - T_{{sky}}}}(T_{{sky}} - T_s) + F_{{air}}\frac{{T_s^4 - T_{{air}}^4}}{{T_s - T_{{air}}}}(T_{{air}} - T_s) + F_{{srd}}\frac{{T_s^4 - T_{{srd}}^4}}{{T_s - T_{{srd}}}}(T_{{srd}} - T_s) ]$$"
+    eq_ant_1 = rf"$$\alpha_{{ant}} = {inputs.ant_solar_absorptance:.2f}, \quad \varepsilon_{{ant}} = {inputs.ant_ir_emissivity:.2f}$$"
+    eq_ant_2 = rf"$$q_{{roof,ant}} = {inputs.ant_solar_absorptance:.2f}G + h(T_{{air}} - T_s) + q_{{LWR,ant}}$$"
+    eq_ant_3 = rf"$$q_{{LWR,ant}} = {inputs.ant_ir_emissivity:.2f}\sigma [ F_{{gnd}}\frac{{T_s^4 - T_{{gnd}}^4}}{{T_s - T_{{gnd}}}}(T_{{gnd}} - T_s) + F_{{sky}}\frac{{T_s^4 - T_{{sky}}^4}}{{T_s - T_{{sky}}}}(T_{{sky}} - T_s) + F_{{air}}\frac{{T_s^4 - T_{{air}}^4}}{{T_s - T_{{air}}}}(T_{{air}} - T_s) + F_{{srd}}\frac{{T_s^4 - T_{{srd}}^4}}{{T_s - T_{{srd}}}}(T_{{srd}} - T_s) ]$$"
+    eq_delta = rf"$$\Delta \alpha = \alpha_{{ant}} - \alpha_{{base}} = {inputs.ant_solar_absorptance - inputs.baseline_solar_absorptance:.2f},\quad \Delta \varepsilon = \varepsilon_{{ant}} - \varepsilon_{{base}} = {inputs.ant_ir_emissivity - inputs.baseline_ir_emissivity:.2f}$$"
+
+    return f"""
+    <div class="card" style="margin-top: 16px;">
+      <div class="label">Roof assumptions used in the simulation</div>
+      <p class="subtitle" style="margin: 8px 0 0;">Baseline roof is assumed to be conventional clay tiles. The ant-inspired case changes the roof optical properties only.</p>
+      <p class="subtitle" style="margin: 4px 0 0;">Clay tile baseline</p>
+      <div class="eq">{eq_base_1}</div>
+      <div class="eq">{eq_base_2}</div>
+      <div class="eq">{eq_base_3}</div>
+      <p class="subtitle" style="margin: 12px 0 0;">Ant-inspired reflective roof</p>
+      <div class="eq">{eq_ant_1}</div>
+      <div class="eq">{eq_ant_2}</div>
+      <div class="eq">{eq_ant_3}</div>
+      <div class="eq">{eq_delta}</div>
+    </div>
+    """
+
 def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geometry_inputs: ModelInputs | None = None) -> None:
-    eq1 = r"\[\alpha G + h\,(T_{air} - T_s) + h_{r,gnd}(T_{gnd}-T_s) + h_{r,sky}(T_{sky}-T_s) + h_{r,air}(T_{air}-T_s) + h_{r,srd}(T_{srd}-T_s) = 0\]"
-    eq1b = r"\[h_{r,j}=\varepsilon \sigma F_j\,\frac{T_s^4-T_j^4}{T_s-T_j},\qquad j\in\{gnd,sky,air,srd\}\]"
-    eq2 = r"\[Q_{cool}=U_{roof}A_{roof}(T_s-T_{in})^{+}+(U_{wall}A_{wall}+U_{win}A_{win}+U_{door}A_{door})(T_{air}-T_{in})^{+}\]"
-    eq3 = r"\[Q_{saved}=Q_{cool,base}-Q_{cool,ant},\; E_{saved}=\frac{Q_{saved}}{COP\cdot 1000}\]"
+    eq1 = r"$$q_{LWR}=h_{r,gnd}(T_{gnd}-T_s)+h_{r,sky}(T_{sky}-T_s)+h_{r,air}(T_{air}-T_s)+h_{r,srd}(T_{srd}-T_s)$$"
+    eq1b = r"$$h_{r,gnd}=\varepsilon\sigma F_{gnd}\frac{T_s^4-T_{gnd}^4}{T_s-T_{gnd}},\quad h_{r,sky}=\varepsilon\sigma F_{sky}\frac{T_s^4-T_{sky}^4}{T_s-T_{sky}}$$"
+    eq1c = r"$$h_{r,air}=\varepsilon\sigma F_{air}\frac{T_s^4-T_{air}^4}{T_s-T_{air}},\quad h_{r,srd}=\varepsilon\sigma F_{srd}\frac{T_s^4-T_{srd}^4}{T_s-T_{srd}}$$"
+    eq1d = r"$$\alpha G + h(T_{air} - T_s) + q_{LWR} = 0$$"
+    eq2 = r"$$Q_{cool}=H_{roof}\,\mathrm{max}(0, T_s-T_{in}) + (H_{wall}+H_{win}+H_{door})\,\mathrm{max}(0, T_{air}-T_{in})$$"
+    eq3 = r"$$Q_{saved}=Q_{cool,base}-Q_{cool,ant},\quad E_{saved}=\frac{Q_{saved}}{COP\cdot 1000}$$"
     geometry_inputs = geometry_inputs or ModelInputs()
     geometry_block = _building_geometry_plot(geometry_inputs)
+    assumptions_block = _roof_assumptions_block(geometry_inputs)
 
 
     city_blocks = []
@@ -575,11 +653,18 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
   <title>Roof PVGIS Hourly Analysis</title>
   <script>
     window.MathJax = {{
-      tex: {{ inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }},
+      tex: {{ inlineMath: [['$', '$'], ['\(', '\)']], displayMath: [['$$', '$$'], ['\[', '\]']] }},
       svg: {{ fontCache: 'global' }}
     }};
   </script>
   <script defer src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>
+  <script>
+    window.addEventListener('load', function () {{
+      if (window.MathJax && window.MathJax.typesetPromise) {{
+        window.MathJax.typesetPromise();
+      }}
+    }});
+  </script>
   <style>
     body {{ font-family: Segoe UI, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f4f7f5; color: #1d2a2a; }}
     .wrap {{ max-width: 1000px; margin: 0 auto; }}
@@ -593,6 +678,9 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
     details {{ margin-top: 14px; background: #fff; border: 1px solid #d7e1dc; border-radius: 10px; padding: 12px; }}
     summary {{ cursor: pointer; color: #0b7285; font-weight: 600; }}
     .eq {{ background: #eef4f2; border-radius: 8px; padding: 10px; overflow-x: auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: #ffffff; border: 1px solid #d7e1dc; border-radius: 12px; }}
+    .nav a {{ color: #0b7285; text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
     .geometry-card {{ margin-top: 16px; }}
     .plotly-wrap {{ margin-top: 8px; }}
     table {{ width: 100%; border-collapse: collapse; margin-top: 8px; }}
@@ -601,15 +689,19 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
 </head>
 <body>
   <div class=\"wrap\">
+    <div class=\"nav\"><a href="index.html">Home</a><a href="interactive_roof_report.html">Interactive Roof Report</a><a href="ant_roof_cooling_report.html">Roof Cooling Report</a><a href="hat_analysis_report.html">Hat Analysis Report</a></div>
     <div class=\"title\">Roof Hourly Benefit Analysis From PVGIS TMY</div>
     <p class=\"subtitle\">Cities: Marseille and Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
 
     {geometry_block}
+    {assumptions_block}
     <details open>
       <summary>Equations Used</summary>
       <div class=\"eq\">{eq1}</div>
       <div class="eq">{eq1b}</div>
+      <div class="eq">{eq1c}</div>
+      <div class="eq">{eq1d}</div>
       <div class=\"eq\">{eq2}</div>
       <div class="eq">{eq3}</div>
     </details>
@@ -657,7 +749,7 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument("--indoor-c", type=float, default=24.0)
     p.add_argument("--u-value", type=float, default=1.2)
-    p.add_argument("--cop", type=float, default=3.2)
+    p.add_argument("--cop", type=float, default=3.5)
 
     p.add_argument("--html", type=Path, default=None, help="Output HTML path")
     return p.parse_args()
@@ -721,9 +813,19 @@ def main() -> None:
     print(f"Temperature drop: {result.roof_temp_drop_c:.2f} C")
     print(f"Baseline building cooling load: {result.baseline_building_cooling_w:.2f} W")
     print(f"Ant-inspired building cooling load: {result.ant_building_cooling_w:.2f} W")
+    h_values = building_heat_loss_coefficients(inputs)
     print(f"Building cooling load saved: {result.building_cooling_power_saved_w:.2f} W")
+    print(f"H_roof before/after: {h_values['roof_h_w_k']:.2f} / {h_values['roof_h_w_k']:.2f} W/K")
+    print(f"H_wall before/after: {h_values['wall_h_w_k']:.2f} / {h_values['wall_h_w_k']:.2f} W/K")
+    print(f"H_window before/after: {h_values['window_h_w_k']:.2f} / {h_values['window_h_w_k']:.2f} W/K")
+    print(f"H_door before/after: {h_values['door_h_w_k']:.2f} / {h_values['door_h_w_k']:.2f} W/K")
+    print(f"H_total before/after: {h_values['total_h_w_k']:.2f} / {h_values['total_h_w_k']:.2f} W/K")
     print(f"Building electricity savings: {monthly:.2f} kWh/month")
     print(f"Building electricity savings: {yearly:.2f} kWh/year")
+
+    html_path = args.html or Path("interactive_roof_report.html")
+    render_hourly_html([single_run_summary(result)], html_path, inputs)
+    print(f"HTML report: {html_path.resolve()}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Reports Home</title>
+  <style>
+    :root {
+      --bg: #f3f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    .hero { margin-bottom: 20px; }
+    .title { font-size: 2rem; font-weight: 700; margin: 0 0 8px; }
+    .subtitle { margin: 0; color: var(--muted); }
+    .list { display: grid; gap: 14px; }
+    .card {
+      display: block;
+      padding: 16px 18px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    .card:hover { border-color: var(--accent); }
+    .name { color: var(--accent); font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    .desc { color: var(--muted); margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <p class="title">Project Reports Home</p>
+      <p class="subtitle">Use these links to move between the generated HTML outputs in this project.</p>
+    </div>
+    <div class="list">
+      <a class="card" href="sahara_ant_geometry_view.html">
+        <div class="name">Sahara Ant Geometry</div>
+        <p class="desc">Interactive 3D viewer for the exported Sahara desert ant pyramid-array geometry.</p>
+      </a>
+      <a class="card" href="interactive_roof_report.html">
+        <div class="name">Interactive Roof Report</div>
+        <p class="desc">Interactive roof analysis with equations, 3D model, and building cooling results.</p>
+      </a>
+      <a class="card" href="ant_roof_cooling_report.html">
+        <div class="name">Roof Cooling Report</div>
+        <p class="desc">Static Sahara ant hair roof cooling summary report.</p>
+      </a>
+      <a class="card" href="hat_analysis_report.html">
+        <div class="name">Hat Analysis Report</div>
+        <p class="desc">Round hat thermal analysis report.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

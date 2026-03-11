@@ -6,11 +6,18 @@
   <title>Round Hat Thermal Analysis</title>
   <script>
     window.MathJax = {
-      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
       svg: { fontCache: 'global' }
     };
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script>
+    window.addEventListener('load', function () {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    });
+  </script>
   <style>
     :root {
       --bg: #f6f2e8;
@@ -47,10 +54,15 @@
       padding: 10px 12px;
       overflow-x: auto;
     }
+
+    .nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .nav a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="wrap">
+  <div class="nav"><a href="index.html">Home</a><a href="interactive_roof_report.html">Interactive Roof Report</a><a href="ant_roof_cooling_report.html">Roof Cooling Report</a><a href="hat_analysis_report.html">Hat Analysis Report</a></div>
     <div class="title">Round Hat Cooling Analysis (Beach Full Sun)</div>
     <p class="subtitle">Click sections to inspect equations, assumptions, input values, and outputs.</p>
 
@@ -76,9 +88,7 @@
 
     <details>
       <summary>Equation 1: Hat shell energy balance</summary>
-      <div class="equation">\[
-      lpha f_{view} G + h\,(T_a - T_s) + arepsilon\sigma\,(T_{sky}^4 - T_s^4) = 0
-      \]</div>
+      <div class="equation">$$\alpha f_{view} G + h(T_a - T_s) + \varepsilon \sigma (T_{sky}^4 - T_s^4) = 0$$</div>
       <p>
       For a round hat, \(f_{view}\) accounts for curved geometry reducing effective direct solar load.
       </p>
@@ -86,12 +96,8 @@
 
     <details>
       <summary>Equation 2: Equivalent cooling metric</summary>
-      <div class="equation">\[
-      q_{reduction} = (lpha_{base} - lpha_{ant})\,f_{view}\,G
-      \]</div>
-      <div class="equation">\[
-      E_{equiv} = rac{q_{reduction}}{COP}\cdotrac{hours}{1000}
-      \]</div>
+      <div class="equation">$$q_{reduction} = (\alpha_{base} - \alpha_{ant}) f_{view} G$$</div>
+      <div class="equation">$$E_{equiv} = \frac{q_{reduction}}{COP} \cdot \frac{hours}{1000}$$</div>
       <p>
       This converts heat-flux reduction to an equivalent cooling-electricity intensity basis for comparison.
       </p>
