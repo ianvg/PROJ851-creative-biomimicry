@@ -28,5 +28,7 @@ Outputs are generated automatically in:
 ## Core Question
 How much additional energy efficiency can be achieved by applying Sahara desert ant-inspired strategies to the product?
 
+The PDMS material is assumed to be used for this modeling simulation.
+
 ## Notes
 This is a first-order physics model (solar absorption + convection + thermal radiation + conduction/convection assumptions). For final engineering decisions, calibrate with measured data.
