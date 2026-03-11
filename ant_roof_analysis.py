@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -116,7 +115,6 @@ def compute_results(inputs: ModelInputs) -> ModelResults:
     ant_ts_c = k_to_c(ant_ts_k)
     temp_drop_c = baseline_ts_c - ant_ts_c
 
-    # Heat flow entering interior through the roof (only when roof skin is hotter than indoor air).
     q_in_baseline = max(0.0, inputs.roof_u_value_w_m2k * (baseline_ts_c - inputs.indoor_temp_c))
     q_in_ant = max(0.0, inputs.roof_u_value_w_m2k * (ant_ts_c - inputs.indoor_temp_c))
     cooling_power_saved = max(0.0, q_in_baseline - q_in_ant)
@@ -146,6 +144,13 @@ def render_html(inputs: ModelInputs, results: ModelResults, output_path: Path) -
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>Sahara Ant Hair Roof Cooling Analysis</title>
+  <script>
+    window.MathJax = {{
+      tex: {{ inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]']] }},
+      svg: {{ fontCache: 'global' }}
+    }};
+  </script>
+  <script defer src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>
   <style>
     :root {{
       --bg: #f4f7f5;
@@ -161,7 +166,7 @@ def render_html(inputs: ModelInputs, results: ModelResults, output_path: Path) -
       padding: 24px;
       background: radial-gradient(circle at top right, #d9ecef 0%, var(--bg) 45%);
       color: var(--ink);
-      font-family: "Segoe UI", Tahoma, sans-serif;
+      font-family: \"Segoe UI\", Tahoma, sans-serif;
       line-height: 1.4;
     }}
     .wrap {{ max-width: 1000px; margin: 0 auto; }}
@@ -187,11 +192,18 @@ def render_html(inputs: ModelInputs, results: ModelResults, output_path: Path) -
     }}
     summary {{ cursor: pointer; font-weight: 600; color: var(--accent); }}
     code, pre {{
-      font-family: Consolas, "Courier New", monospace;
+      font-family: Consolas, \"Courier New\", monospace;
       background: #f1f5f3;
       border-radius: 8px;
     }}
     pre {{ padding: 12px; overflow-x: auto; }}
+    .equation {{
+      font-size: 1.04rem;
+      background: #f1f5f3;
+      border-radius: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+    }}
   </style>
 </head>
 <body>
@@ -221,21 +233,29 @@ def render_html(inputs: ModelInputs, results: ModelResults, output_path: Path) -
 
     <details>
       <summary>Equation 1: Roof surface steady-state energy balance</summary>
-      <pre>alpha*G + h*(Ta - Ts) + eps*sigma*(Tsky^4 - Ts^4) = 0</pre>
+      <div class=\"equation\">\\[
+      \\alpha G + h\\,(T_a - T_s) + \\varepsilon\\sigma\\,(T_{sky}^{4} - T_{s}^{4}) = 0
+      \\]</div>
       <p>
       where:<br>
-      alpha = solar absorptance, G = solar irradiance (W/m\u00b2), h = convection coefficient (W/m\u00b2K),<br>
-      eps = IR emissivity, sigma = Stefan-Boltzmann constant, Ta/Ts/Tsky in Kelvin.
+      \\(\\alpha\\) = solar absorptance, \\(G\\) = solar irradiance (W/m\u00b2), \\(h\\) = convection coefficient (W/m\u00b2K),<br>
+      \\(\\varepsilon\\) = IR emissivity, \\(\\sigma\\) = Stefan-Boltzmann constant, \\(T_a\\), \\(T_s\\), \\(T_{{sky}}\\) in Kelvin.
       </p>
     </details>
 
     <details>
       <summary>Equation 2: Cooling load reduction at roof-to-indoor boundary</summary>
-      <pre>q_in = max(0, U*(Ts - Tin))
-q_saved = q_in_baseline - q_in_ant
-E_saved = (q_saved/COP)*hours/1000</pre>
+      <div class=\"equation\">\\[
+      q_{{in}} = \\max\\left(0, U\\,(T_s - T_{{in}})\\right)
+      \\]</div>
+      <div class=\"equation\">\\[
+      q_{{saved}} = q_{{in,baseline}} - q_{{in,ant}}
+      \\]</div>
+      <div class=\"equation\">\\[
+      E_{{saved}} = \\frac{{q_{{saved}}}}{{COP}}\\cdot\\frac{{hours}}{{1000}}
+      \\]</div>
       <p>
-      where U is roof U-value (W/m\u00b2K), Tin indoor setpoint, COP cooling system coefficient of performance.
+      where \\(U\\) is roof U-value (W/m\u00b2K), \\(T_{{in}}\\) indoor setpoint, and \\(COP\\) cooling system coefficient of performance.
       </p>
     </details>
 
