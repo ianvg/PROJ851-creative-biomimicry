@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hat PVGIS Hourly Analysis</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\(', '\)']], displayMath: [['\[', '\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    body { font-family: Segoe UI, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f6f2e8; color: #2d2417; }
+    .wrap { max-width: 1000px; margin: 0 auto; }
+    .title { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+    .subtitle { color: #6a5c46; margin-top: 0; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .card { background: #fffdfa; border: 1px solid #e9dcc5; border-radius: 12px; padding: 12px; }
+    .label { color: #6a5c46; font-size: 0.88rem; }
+    .value { font-size: 1.45rem; font-weight: 700; margin-top: 4px; }
+    .ok { color: #2b8a3e; }
+    details { margin-top: 14px; background: #fffdfa; border: 1px solid #e9dcc5; border-radius: 10px; padding: 12px; }
+    summary { cursor: pointer; color: #a35f14; font-weight: 600; }
+    .eq { background: #f9f4ea; border-radius: 8px; padding: 10px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border-bottom: 1px solid #efe3d1; text-align: left; padding: 6px; font-size: 0.92rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Round Hat Hourly Benefit Analysis From PVGIS TMY</div>
+    <p class="subtitle">Cities: Marseille and Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
+
+    <details open>
+      <summary>Equations Used</summary>
+      <div class="eq">\[\alpha f_{view} G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]</div>
+      <div class="eq">\[q_{reduction}=(\alpha_{base}-\alpha_{ant})\,f_{view}\,G,\; E_{equiv}=\frac{q_{reduction}}{COP\cdot 1000}\]</div>
+    </details>
+
+    
+      <details>
+        <summary>Marseille - Hourly And Monthly Benefits</summary>
+        <div class="grid" style="margin-top:10px;">
+          <div class="card">
+            <div class="label">Average shell temperature drop (all TMY hours)</div>
+            <div class="value ok">2.21 °C</div>
+          </div>
+          <div class="card">
+            <div class="label">Annual equivalent savings</div>
+            <div class="value ok">163.65 kWh/m²/year</div>
+          </div>
+        </div>
+        <h3>Monthly Equivalent Savings (kWh/m²)</h3>
+        <table>
+          <thead><tr><th>Month</th><th>kWh/m²</th></tr></thead>
+          <tbody><tr><td>01</td><td>6.005</td></tr>
+<tr><td>02</td><td>7.525</td></tr>
+<tr><td>03</td><td>12.777</td></tr>
+<tr><td>04</td><td>17.824</td></tr>
+<tr><td>05</td><td>20.739</td></tr>
+<tr><td>06</td><td>21.308</td></tr>
+<tr><td>07</td><td>21.713</td></tr>
+<tr><td>08</td><td>19.963</td></tr>
+<tr><td>09</td><td>15.992</td></tr>
+<tr><td>10</td><td>9.613</td></tr>
+<tr><td>11</td><td>5.456</td></tr>
+<tr><td>12</td><td>4.733</td></tr></tbody>
+        </table>
+        <h3>Average Benefit By Hour Of Day</h3>
+        <table>
+          <thead><tr><th>Hour</th><th>Avg Temp Drop (°C)</th><th>Avg Savings (kWh/m²/h)</th></tr></thead>
+          <tbody><tr><td>00:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>01:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>02:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>03:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>04:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>05:00</td><td>0.44</td><td>0.0026</td></tr>
+<tr><td>06:00</td><td>1.35</td><td>0.0098</td></tr>
+<tr><td>07:00</td><td>2.68</td><td>0.0203</td></tr>
+<tr><td>08:00</td><td>4.33</td><td>0.0342</td></tr>
+<tr><td>09:00</td><td>5.72</td><td>0.0462</td></tr>
+<tr><td>10:00</td><td>6.65</td><td>0.0541</td></tr>
+<tr><td>11:00</td><td>6.82</td><td>0.0588</td></tr>
+<tr><td>12:00</td><td>6.46</td><td>0.0586</td></tr>
+<tr><td>13:00</td><td>5.80</td><td>0.0546</td></tr>
+<tr><td>14:00</td><td>4.76</td><td>0.0451</td></tr>
+<tr><td>15:00</td><td>3.54</td><td>0.0328</td></tr>
+<tr><td>16:00</td><td>2.20</td><td>0.0197</td></tr>
+<tr><td>17:00</td><td>1.08</td><td>0.0091</td></tr>
+<tr><td>18:00</td><td>0.37</td><td>0.0025</td></tr>
+<tr><td>19:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>20:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>21:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>22:00</td><td>0.09</td><td>0.0000</td></tr>
+<tr><td>23:00</td><td>0.09</td><td>0.0000</td></tr></tbody>
+        </table>
+      </details>
+
+      <details>
+        <summary>Cairo - Hourly And Monthly Benefits</summary>
+        <div class="grid" style="margin-top:10px;">
+          <div class="card">
+            <div class="label">Average shell temperature drop (all TMY hours)</div>
+            <div class="value ok">3.33 °C</div>
+          </div>
+          <div class="card">
+            <div class="label">Annual equivalent savings</div>
+            <div class="value ok">214.03 kWh/m²/year</div>
+          </div>
+        </div>
+        <h3>Monthly Equivalent Savings (kWh/m²)</h3>
+        <table>
+          <thead><tr><th>Month</th><th>kWh/m²</th></tr></thead>
+          <tbody><tr><td>01</td><td>10.700</td></tr>
+<tr><td>02</td><td>11.853</td></tr>
+<tr><td>03</td><td>17.517</td></tr>
+<tr><td>04</td><td>20.470</td></tr>
+<tr><td>05</td><td>23.542</td></tr>
+<tr><td>06</td><td>24.440</td></tr>
+<tr><td>07</td><td>24.570</td></tr>
+<tr><td>08</td><td>22.820</td></tr>
+<tr><td>09</td><td>19.270</td></tr>
+<tr><td>10</td><td>16.309</td></tr>
+<tr><td>11</td><td>11.860</td></tr>
+<tr><td>12</td><td>10.683</td></tr></tbody>
+        </table>
+        <h3>Average Benefit By Hour Of Day</h3>
+        <table>
+          <thead><tr><th>Hour</th><th>Avg Temp Drop (°C)</th><th>Avg Savings (kWh/m²/h)</th></tr></thead>
+          <tbody><tr><td>00:00</td><td>0.12</td><td>0.0000</td></tr>
+<tr><td>01:00</td><td>0.12</td><td>0.0000</td></tr>
+<tr><td>02:00</td><td>0.12</td><td>0.0000</td></tr>
+<tr><td>03:00</td><td>0.13</td><td>0.0001</td></tr>
+<tr><td>04:00</td><td>0.93</td><td>0.0044</td></tr>
+<tr><td>05:00</td><td>3.27</td><td>0.0181</td></tr>
+<tr><td>06:00</td><td>6.35</td><td>0.0386</td></tr>
+<tr><td>07:00</td><td>8.60</td><td>0.0571</td></tr>
+<tr><td>08:00</td><td>10.02</td><td>0.0713</td></tr>
+<tr><td>09:00</td><td>10.62</td><td>0.0795</td></tr>
+<tr><td>10:00</td><td>10.27</td><td>0.0804</td></tr>
+<tr><td>11:00</td><td>9.37</td><td>0.0760</td></tr>
+<tr><td>12:00</td><td>7.86</td><td>0.0650</td></tr>
+<tr><td>13:00</td><td>5.77</td><td>0.0488</td></tr>
+<tr><td>14:00</td><td>3.61</td><td>0.0310</td></tr>
+<tr><td>15:00</td><td>1.62</td><td>0.0137</td></tr>
+<tr><td>16:00</td><td>0.37</td><td>0.0024</td></tr>
+<tr><td>17:00</td><td>0.10</td><td>0.0000</td></tr>
+<tr><td>18:00</td><td>0.10</td><td>0.0000</td></tr>
+<tr><td>19:00</td><td>0.10</td><td>0.0000</td></tr>
+<tr><td>20:00</td><td>0.10</td><td>0.0000</td></tr>
+<tr><td>21:00</td><td>0.11</td><td>0.0000</td></tr>
+<tr><td>22:00</td><td>0.11</td><td>0.0000</td></tr>
+<tr><td>23:00</td><td>0.11</td><td>0.0000</td></tr></tbody>
+        </table>
+      </details>
+
+  </div>
+</body>
+</html>

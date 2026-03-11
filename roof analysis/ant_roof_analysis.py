@@ -1,11 +1,22 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
+import csv
 import json
+from collections import defaultdict
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
-SIGMA = 5.670374419e-8  # Stefan-Boltzmann constant (W/m2/K4)
+SIGMA = 5.670374419e-8  # W/m2/K4
+PVGIS_TMY_URL = "https://re.jrc.ec.europa.eu/api/tmy"
+CITY_COORDS = {
+    "marseille": (43.2965, 5.3698),
+    "cairo": (30.0444, 31.2357),
+}
 
 
 @dataclass
@@ -25,10 +36,6 @@ class ModelInputs:
     roof_u_value_w_m2k: float = 1.2
     cooling_cop: float = 3.2
 
-    daytime_hours_per_day: float = 8.0
-    days_per_month: float = 30.0
-    months_per_year: float = 12.0
-
 
 @dataclass
 class ModelResults:
@@ -36,8 +43,7 @@ class ModelResults:
     ant_roof_temp_c: float
     roof_temp_drop_c: float
     cooling_power_saved_w_m2: float
-    electric_savings_kwh_m2_month: float
-    electric_savings_kwh_m2_year: float
+    electric_savings_kwh_m2_hour: float
 
 
 def c_to_k(celsius: float) -> float:
@@ -49,11 +55,6 @@ def k_to_c(kelvin: float) -> float:
 
 
 def energy_balance(ts_k: float, solar_absorptance: float, ir_emissivity: float, inputs: ModelInputs) -> float:
-    """Returns residual of steady-state energy equation for roof outer surface.
-
-    Equation (W/m2):
-    alpha*G + h*(Ta - Ts) + eps*sigma*(Tsky^4 - Ts^4) = 0
-    """
     ta_k = c_to_k(inputs.ambient_temp_c)
     tsky_k = c_to_k(inputs.sky_temp_c)
 
@@ -65,7 +66,6 @@ def energy_balance(ts_k: float, solar_absorptance: float, ir_emissivity: float, 
 
 
 def solve_surface_temp_k(solar_absorptance: float, ir_emissivity: float, inputs: ModelInputs) -> float:
-    """Bisection solve for root of energy balance in Kelvin."""
     low_k = c_to_k(-20.0)
     high_k = c_to_k(120.0)
 
@@ -77,10 +77,7 @@ def solve_surface_temp_k(solar_absorptance: float, ir_emissivity: float, inputs:
     if f_high == 0:
         return high_k
     if f_low * f_high > 0:
-        raise ValueError(
-            "Could not bracket a valid roof temperature solution. "
-            "Try adjusting inputs (solar irradiance, air temp, or optical properties)."
-        )
+        raise ValueError("Could not bracket roof temperature solution.")
 
     for _ in range(100):
         mid_k = 0.5 * (low_k + high_k)
@@ -91,7 +88,6 @@ def solve_surface_temp_k(solar_absorptance: float, ir_emissivity: float, inputs:
 
         if f_low * f_mid < 0:
             high_k = mid_k
-            f_high = f_mid
         else:
             low_k = mid_k
             f_low = f_mid
@@ -100,16 +96,8 @@ def solve_surface_temp_k(solar_absorptance: float, ir_emissivity: float, inputs:
 
 
 def compute_results(inputs: ModelInputs) -> ModelResults:
-    baseline_ts_k = solve_surface_temp_k(
-        inputs.baseline_solar_absorptance,
-        inputs.baseline_ir_emissivity,
-        inputs,
-    )
-    ant_ts_k = solve_surface_temp_k(
-        inputs.ant_solar_absorptance,
-        inputs.ant_ir_emissivity,
-        inputs,
-    )
+    baseline_ts_k = solve_surface_temp_k(inputs.baseline_solar_absorptance, inputs.baseline_ir_emissivity, inputs)
+    ant_ts_k = solve_surface_temp_k(inputs.ant_solar_absorptance, inputs.ant_ir_emissivity, inputs)
 
     baseline_ts_c = k_to_c(baseline_ts_k)
     ant_ts_c = k_to_c(ant_ts_k)
@@ -119,155 +107,237 @@ def compute_results(inputs: ModelInputs) -> ModelResults:
     q_in_ant = max(0.0, inputs.roof_u_value_w_m2k * (ant_ts_c - inputs.indoor_temp_c))
     cooling_power_saved = max(0.0, q_in_baseline - q_in_ant)
 
-    cooling_hours_month = inputs.daytime_hours_per_day * inputs.days_per_month
-    cooling_hours_year = cooling_hours_month * inputs.months_per_year
-
-    electric_savings_kwh_m2_month = (cooling_power_saved / inputs.cooling_cop) * cooling_hours_month / 1000.0
-    electric_savings_kwh_m2_year = (cooling_power_saved / inputs.cooling_cop) * cooling_hours_year / 1000.0
+    electric_savings_kwh_hour = (cooling_power_saved / inputs.cooling_cop) / 1000.0
 
     return ModelResults(
         baseline_roof_temp_c=baseline_ts_c,
         ant_roof_temp_c=ant_ts_c,
         roof_temp_drop_c=temp_drop_c,
         cooling_power_saved_w_m2=cooling_power_saved,
-        electric_savings_kwh_m2_month=electric_savings_kwh_m2_month,
-        electric_savings_kwh_m2_year=electric_savings_kwh_m2_year,
+        electric_savings_kwh_m2_hour=electric_savings_kwh_hour,
     )
 
 
-def render_html(inputs: ModelInputs, results: ModelResults, output_path: Path) -> None:
-    inputs_json = json.dumps(asdict(inputs), indent=2)
+def _pick(row: dict[str, Any], *keys: str, default: float = 0.0) -> float:
+    for key in keys:
+        if key in row:
+            try:
+                return float(row[key])
+            except (TypeError, ValueError):
+                continue
+    return default
+
+
+def _parse_time(raw: str) -> tuple[int, int]:
+    formats = ["%Y%m%d:%H%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S"]
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(raw, fmt)
+            return dt.month, dt.hour
+        except ValueError:
+            pass
+    if len(raw) >= 10 and raw[:8].isdigit() and raw[9:11].isdigit():
+        return int(raw[4:6]), int(raw[9:11])
+    return 1, 0
+
+
+def fetch_pvgis_tmy(city: str, cache_dir: Path) -> list[dict[str, Any]]:
+    city_key = city.strip().lower()
+    if city_key not in CITY_COORDS:
+        raise ValueError(f"Unsupported city '{city}'. Use: {', '.join(CITY_COORDS)}")
+
+    lat, lon = CITY_COORDS[city_key]
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / f"pvgis_tmy_{city_key}.json"
+
+    if cache_path.exists():
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    else:
+        query = urlencode({"lat": lat, "lon": lon, "outputformat": "json"})
+        with urlopen(f"{PVGIS_TMY_URL}?{query}", timeout=60) as resp:  # nosec B310
+            payload = json.loads(resp.read().decode("utf-8"))
+        cache_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    rows = payload.get("outputs", {}).get("tmy_hourly")
+    if not rows:
+        raise ValueError(f"No tmy_hourly data returned for {city}.")
+    return rows
+
+
+def hourly_analysis_for_city(city: str, args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    rows = fetch_pvgis_tmy(city, Path(args.pvgis_cache_dir))
+
+    hourly_out: list[dict[str, Any]] = []
+    monthly_kwh = defaultdict(float)
+    hour_bins_temp = defaultdict(list)
+    hour_bins_kwh = defaultdict(list)
+
+    for row in rows:
+        raw_time = str(row.get("time(UTC)") or row.get("time") or row.get("time_utc") or "20010101:0000")
+        month, hour = _parse_time(raw_time)
+
+        ghi = max(0.0, _pick(row, "G(h)", "Gh", "GHI"))
+        ambient_c = _pick(row, "T2m", "T2m(C)")
+        ws10 = max(0.0, _pick(row, "WS10m", "WS10m(m/s)", "WS10m (m/s)", default=1.0))
+
+        # Empirical exterior convection estimate from wind speed.
+        h_dynamic = 5.7 + 3.8 * ws10
+
+        inputs = ModelInputs(
+            solar_irradiance_w_m2=ghi,
+            ambient_temp_c=ambient_c,
+            sky_temp_c=ambient_c - args.sky_offset_c,
+            convective_h_w_m2k=h_dynamic,
+            baseline_solar_absorptance=args.alpha_baseline,
+            baseline_ir_emissivity=args.eps_baseline,
+            ant_solar_absorptance=args.alpha_ant,
+            ant_ir_emissivity=args.eps_ant,
+            indoor_temp_c=args.indoor_c,
+            roof_u_value_w_m2k=args.u_value,
+            cooling_cop=args.cop,
+        )
+
+        result = compute_results(inputs)
+        kwh_hour = result.electric_savings_kwh_m2_hour
+
+        hourly_out.append(
+            {
+                "city": city,
+                "time_utc": raw_time,
+                "month": month,
+                "hour": hour,
+                "ghi_w_m2": ghi,
+                "ambient_c": ambient_c,
+                "wind_m_s": ws10,
+                "baseline_roof_temp_c": result.baseline_roof_temp_c,
+                "ant_roof_temp_c": result.ant_roof_temp_c,
+                "temp_drop_c": result.roof_temp_drop_c,
+                "cooling_saved_w_m2": result.cooling_power_saved_w_m2,
+                "electric_saved_kwh_m2_hour": kwh_hour,
+            }
+        )
+
+        monthly_kwh[month] += kwh_hour
+        hour_bins_temp[hour].append(result.roof_temp_drop_c)
+        hour_bins_kwh[hour].append(kwh_hour)
+
+    annual_kwh = sum(r["electric_saved_kwh_m2_hour"] for r in hourly_out)
+    avg_drop = sum(r["temp_drop_c"] for r in hourly_out) / len(hourly_out)
+
+    hourly_avg = []
+    for hour in range(24):
+        t_vals = hour_bins_temp.get(hour, [0.0])
+        e_vals = hour_bins_kwh.get(hour, [0.0])
+        hourly_avg.append(
+            {
+                "hour": hour,
+                "avg_temp_drop_c": sum(t_vals) / len(t_vals),
+                "avg_kwh_m2_hour": sum(e_vals) / len(e_vals),
+            }
+        )
+
+    summary = {
+        "city": city,
+        "annual_kwh_m2": annual_kwh,
+        "monthly_kwh_m2": dict(sorted(monthly_kwh.items())),
+        "avg_temp_drop_c": avg_drop,
+        "hourly_avg": hourly_avg,
+    }
+    return hourly_out, summary
+
+
+def _monthly_rows(monthly: dict[int, float]) -> str:
+    rows = []
+    for m in range(1, 13):
+        rows.append(f"<tr><td>{m:02d}</td><td>{monthly.get(m, 0.0):.3f}</td></tr>")
+    return "\n".join(rows)
+
+
+def _hourly_rows(hourly_avg: list[dict[str, float]]) -> str:
+    rows = []
+    for r in hourly_avg:
+        rows.append(
+            f"<tr><td>{r['hour']:02d}:00</td><td>{r['avg_temp_drop_c']:.2f}</td><td>{r['avg_kwh_m2_hour']:.4f}</td></tr>"
+        )
+    return "\n".join(rows)
+
+
+def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> None:
+    eq1 = r"\[\alpha G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]"
+    eq2 = r"\[q_{in}=\max(0,U(T_s-T_{in})),\; q_{saved}=q_{in,base}-q_{in,ant},\; E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]"
+
+    city_blocks = []
+    for s in summaries:
+        city_blocks.append(
+            f"""
+      <details>
+        <summary>{s['city'].title()} - Hourly And Monthly Benefits</summary>
+        <div class=\"grid\" style=\"margin-top:10px;\">
+          <div class=\"card\">
+            <div class=\"label\">Average roof temperature drop (all TMY hours)</div>
+            <div class=\"value ok\">{s['avg_temp_drop_c']:.2f} °C</div>
+          </div>
+          <div class=\"card\">
+            <div class=\"label\">Annual electricity savings</div>
+            <div class=\"value ok\">{s['annual_kwh_m2']:.2f} kWh/m²/year</div>
+          </div>
+        </div>
+        <h3>Monthly Savings (kWh/m²)</h3>
+        <table>
+          <thead><tr><th>Month</th><th>kWh/m²</th></tr></thead>
+          <tbody>{_monthly_rows(s['monthly_kwh_m2'])}</tbody>
+        </table>
+        <h3>Average Benefit By Hour Of Day</h3>
+        <table>
+          <thead><tr><th>Hour</th><th>Avg Temp Drop (°C)</th><th>Avg Savings (kWh/m²/h)</th></tr></thead>
+          <tbody>{_hourly_rows(s['hourly_avg'])}</tbody>
+        </table>
+      </details>
+"""
+        )
 
     html = f"""<!doctype html>
 <html lang=\"en\">
 <head>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-  <title>Sahara Ant Hair Roof Cooling Analysis</title>
+  <title>Roof PVGIS Hourly Analysis</title>
   <script>
     window.MathJax = {{
-      tex: {{ inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]']] }},
+      tex: {{ inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }},
       svg: {{ fontCache: 'global' }}
     }};
   </script>
   <script defer src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>
   <style>
-    :root {{
-      --bg: #f4f7f5;
-      --card: #ffffff;
-      --ink: #1d2a2a;
-      --accent: #0b7285;
-      --ok: #2b8a3e;
-      --muted: #5b6b6b;
-      --border: #d7e1dc;
-    }}
-    body {{
-      margin: 0;
-      padding: 24px;
-      background: radial-gradient(circle at top right, #d9ecef 0%, var(--bg) 45%);
-      color: var(--ink);
-      font-family: \"Segoe UI\", Tahoma, sans-serif;
-      line-height: 1.4;
-    }}
+    body {{ font-family: Segoe UI, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f4f7f5; color: #1d2a2a; }}
     .wrap {{ max-width: 1000px; margin: 0 auto; }}
-    .title {{ margin-bottom: 8px; font-size: 1.8rem; font-weight: 700; }}
-    .subtitle {{ margin: 0 0 20px; color: var(--muted); }}
+    .title {{ font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }}
+    .subtitle {{ color: #5b6b6b; margin-top: 0; }}
     .grid {{ display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }}
-    .card {{
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    }}
-    .label {{ font-size: 0.86rem; color: var(--muted); }}
-    .value {{ font-size: 1.5rem; font-weight: 700; margin-top: 4px; }}
-    .ok {{ color: var(--ok); }}
-    details {{
-      margin-top: 14px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-    }}
-    summary {{ cursor: pointer; font-weight: 600; color: var(--accent); }}
-    code, pre {{
-      font-family: Consolas, \"Courier New\", monospace;
-      background: #f1f5f3;
-      border-radius: 8px;
-    }}
-    pre {{ padding: 12px; overflow-x: auto; }}
-    .equation {{
-      font-size: 1.04rem;
-      background: #f1f5f3;
-      border-radius: 8px;
-      padding: 10px 12px;
-      overflow-x: auto;
-    }}
+    .card {{ background: #fff; border: 1px solid #d7e1dc; border-radius: 12px; padding: 12px; }}
+    .label {{ color: #5b6b6b; font-size: 0.88rem; }}
+    .value {{ font-size: 1.45rem; font-weight: 700; margin-top: 4px; }}
+    .ok {{ color: #2b8a3e; }}
+    details {{ margin-top: 14px; background: #fff; border: 1px solid #d7e1dc; border-radius: 10px; padding: 12px; }}
+    summary {{ cursor: pointer; color: #0b7285; font-weight: 600; }}
+    .eq {{ background: #eef4f2; border-radius: 8px; padding: 10px; overflow-x: auto; }}
+    table {{ width: 100%; border-collapse: collapse; margin-top: 8px; }}
+    th, td {{ border-bottom: 1px solid #e5ece8; text-align: left; padding: 6px; font-size: 0.92rem; }}
   </style>
 </head>
 <body>
   <div class=\"wrap\">
-    <div class=\"title\">Sahara Desert Ant Hair Roof Cooling Analysis</div>
-    <p class=\"subtitle\">Click sections below to inspect equations, input values, and detailed outputs.</p>
+    <div class=\"title\">Roof Hourly Benefit Analysis From PVGIS TMY</div>
+    <p class=\"subtitle\">Cities: Marseille and Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
-    <div class=\"grid\">
-      <div class=\"card\">
-        <div class=\"label\">Baseline roof surface temperature</div>
-        <div class=\"value\">{results.baseline_roof_temp_c:.2f} \u00b0C</div>
-      </div>
-      <div class=\"card\">
-        <div class=\"label\">Ant-hair-inspired roof surface temperature</div>
-        <div class=\"value\">{results.ant_roof_temp_c:.2f} \u00b0C</div>
-      </div>
-      <div class=\"card\">
-        <div class=\"label\">Roof temperature drop</div>
-        <div class=\"value ok\">{results.roof_temp_drop_c:.2f} \u00b0C</div>
-      </div>
-      <div class=\"card\">
-        <div class=\"label\">Cooling electricity saved</div>
-        <div class=\"value ok\">{results.electric_savings_kwh_m2_month:.2f} kWh/m\u00b2/month</div>
-        <div style=\"margin-top:4px;color:var(--muted);\">{results.electric_savings_kwh_m2_year:.2f} kWh/m\u00b2/year</div>
-      </div>
-    </div>
-
-    <details>
-      <summary>Equation 1: Roof surface steady-state energy balance</summary>
-      <div class=\"equation\">\\[
-      \\alpha G + h\\,(T_a - T_s) + \\varepsilon\\sigma\\,(T_{{sky}}^{4} - T_{{s}}^{4}) = 0
-      \\]</div>
-      <p>
-      where:<br>
-      \\(\\alpha\\) = solar absorptance, \\(G\\) = solar irradiance (W/m\u00b2), \\(h\\) = convection coefficient (W/m\u00b2K),<br>
-      \\(\\varepsilon\\) = IR emissivity, \\(\\sigma\\) = Stefan-Boltzmann constant, \\(T_a\\), \\(T_s\\), \\(T_{{sky}}\\) in Kelvin.
-      </p>
+    <details open>
+      <summary>Equations Used</summary>
+      <div class=\"eq\">{eq1}</div>
+      <div class=\"eq\">{eq2}</div>
     </details>
 
-    <details>
-      <summary>Equation 2: Cooling load reduction at roof-to-indoor boundary</summary>
-      <div class=\"equation\">\\[
-      q_{{in}} = \\max\\left(0, U\\,(T_s - T_{{in}})\\right)
-      \\]</div>
-      <div class=\"equation\">\\[
-      q_{{saved}} = q_{{in,baseline}} - q_{{in,ant}}
-      \\]</div>
-      <div class=\"equation\">\\[
-      E_{{saved}} = \\frac{{q_{{saved}}}}{{COP}}\\cdot\\frac{{hours}}{{1000}}
-      \\]</div>
-      <p>
-      where \\(U\\) is roof U-value (W/m\u00b2K), \\(T_{{in}}\\) indoor setpoint, and \\(COP\\) cooling system coefficient of performance.
-      </p>
-    </details>
-
-    <details>
-      <summary>Input values used</summary>
-      <pre>{inputs_json}</pre>
-    </details>
-
-    <details>
-      <summary>Computed outputs</summary>
-      <pre>{json.dumps(asdict(results), indent=2)}</pre>
-    </details>
+    {''.join(city_blocks)}
   </div>
 </body>
 </html>
@@ -275,42 +345,62 @@ def render_html(inputs: ModelInputs, results: ModelResults, output_path: Path) -
     output_path.write_text(html, encoding="utf-8")
 
 
+def write_hourly_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    if not rows:
+        return
+    fieldnames = list(rows[0].keys())
+    with path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description="Analyze roof cooling from Sahara desert ant hair-inspired optical properties.",
-    )
+    p = argparse.ArgumentParser(description="Roof analysis with optional PVGIS TMY hourly mode.")
+    p.add_argument("--use-pvgis", action="store_true", help="Fetch PVGIS TMY and run hourly analysis.")
+    p.add_argument("--cities", default="marseille,cairo", help="Comma-separated city names (marseille,cairo).")
+    p.add_argument("--pvgis-cache-dir", default="pvgis_cache")
+    p.add_argument("--sky-offset-c", type=float, default=12.0, help="Sky temperature estimate offset from ambient.")
 
-    p.add_argument("--solar", type=float, default=900.0, help="Solar irradiance (W/m^2).")
-    p.add_argument("--ambient-c", type=float, default=42.0, help="Ambient air temperature (C).")
-    p.add_argument("--sky-c", type=float, default=15.0, help="Effective sky temperature (C).")
-    p.add_argument("--h", type=float, default=8.0, help="Convective coefficient h (W/m^2K).")
+    p.add_argument("--solar", type=float, default=900.0)
+    p.add_argument("--ambient-c", type=float, default=42.0)
+    p.add_argument("--sky-c", type=float, default=15.0)
+    p.add_argument("--h", type=float, default=8.0)
 
-    p.add_argument("--alpha-baseline", type=float, default=0.85, help="Baseline solar absorptance.")
-    p.add_argument("--eps-baseline", type=float, default=0.90, help="Baseline IR emissivity.")
+    p.add_argument("--alpha-baseline", type=float, default=0.85)
+    p.add_argument("--eps-baseline", type=float, default=0.90)
+    p.add_argument("--alpha-ant", type=float, default=0.35)
+    p.add_argument("--eps-ant", type=float, default=0.95)
 
-    p.add_argument("--alpha-ant", type=float, default=0.35, help="Ant-inspired solar absorptance.")
-    p.add_argument("--eps-ant", type=float, default=0.95, help="Ant-inspired IR emissivity.")
+    p.add_argument("--indoor-c", type=float, default=24.0)
+    p.add_argument("--u-value", type=float, default=1.2)
+    p.add_argument("--cop", type=float, default=3.2)
 
-    p.add_argument("--indoor-c", type=float, default=24.0, help="Indoor setpoint temperature (C).")
-    p.add_argument("--u-value", type=float, default=1.2, help="Roof U-value (W/m^2K).")
-    p.add_argument("--cop", type=float, default=3.2, help="Cooling COP.")
-
-    p.add_argument("--day-hours", type=float, default=8.0, help="Equivalent high-load hours per day.")
-    p.add_argument("--days-month", type=float, default=30.0, help="Days per month.")
-    p.add_argument("--months-year", type=float, default=12.0, help="Months per year.")
-
-    p.add_argument(
-        "--html",
-        type=Path,
-        default=Path("ant_roof_cooling_report.html"),
-        help="Output HTML report path.",
-    )
-
+    p.add_argument("--html", type=Path, default=None, help="Output HTML path")
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+
+    if args.use_pvgis:
+        cities = [c.strip().lower() for c in args.cities.split(",") if c.strip()]
+        summaries: list[dict[str, Any]] = []
+
+        html_path = args.html or Path("ant_roof_pvgis_hourly_report.html")
+
+        for city in cities:
+            hourly_rows, summary = hourly_analysis_for_city(city, args)
+            summaries.append(summary)
+            csv_name = f"roof_hourly_{city}.csv"
+            write_hourly_csv(Path(csv_name), hourly_rows)
+
+        render_hourly_html(summaries, html_path)
+        print("Roof PVGIS hourly analysis complete")
+        for s in summaries:
+            print(f"{s['city'].title()}: avg drop {s['avg_temp_drop_c']:.2f} C, annual {s['annual_kwh_m2']:.2f} kWh/m^2/year")
+        print(f"HTML report: {html_path.resolve()}")
+        return
 
     inputs = ModelInputs(
         solar_irradiance_w_m2=args.solar,
@@ -324,22 +414,20 @@ def main() -> None:
         indoor_temp_c=args.indoor_c,
         roof_u_value_w_m2k=args.u_value,
         cooling_cop=args.cop,
-        daytime_hours_per_day=args.day_hours,
-        days_per_month=args.days_month,
-        months_per_year=args.months_year,
     )
+    result = compute_results(inputs)
 
-    results = compute_results(inputs)
-    render_html(inputs, results, args.html)
+    monthly = result.electric_savings_kwh_m2_hour * 8.0 * 30.0
+    yearly = monthly * 12.0
 
     print("Sahara ant hair roof cooling analysis")
-    print(f"Baseline roof temperature: {results.baseline_roof_temp_c:.2f} C")
-    print(f"Ant-inspired roof temperature: {results.ant_roof_temp_c:.2f} C")
-    print(f"Temperature drop: {results.roof_temp_drop_c:.2f} C")
-    print(f"Cooling electricity savings: {results.electric_savings_kwh_m2_month:.2f} kWh/m^2/month")
-    print(f"Cooling electricity savings: {results.electric_savings_kwh_m2_year:.2f} kWh/m^2/year")
-    print(f"HTML report: {args.html.resolve()}")
+    print(f"Baseline roof temperature: {result.baseline_roof_temp_c:.2f} C")
+    print(f"Ant-inspired roof temperature: {result.ant_roof_temp_c:.2f} C")
+    print(f"Temperature drop: {result.roof_temp_drop_c:.2f} C")
+    print(f"Cooling electricity savings: {monthly:.2f} kWh/m^2/month")
+    print(f"Cooling electricity savings: {yearly:.2f} kWh/m^2/year")
 
 
 if __name__ == "__main__":
     main()
+

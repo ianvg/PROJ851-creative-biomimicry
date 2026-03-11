@@ -1,13 +1,18 @@
-# Roof Analysis
+﻿# Roof Analysis
 
-Run:
-
+## Standard run
 ```bat
 run_ant_roof_analysis.bat
 ```
 
-Outputs:
-- roof temperature drop
-- `kWh/m^2/month`
-- `kWh/m^2/year`
-- clickable report: `ant_roof_cooling_report.html`
+## PVGIS hourly run (Marseille + Cairo)
+```bat
+run_roof_pvgis_hourly.bat
+```
+
+Outputs (PVGIS mode):
+- `ant_roof_pvgis_hourly_report.html`
+- `roof_hourly_marseille.csv`
+- `roof_hourly_cairo.csv`
+
+The hourly report includes LaTeX equations, monthly totals, and average benefit by hour-of-day.
