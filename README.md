@@ -1,4 +1,4 @@
-# Sahara Desert Ant Analysis
+﻿# Sahara Desert Ant Analysis
 
 This analysis investigates how Sahara desert ant-inspired data and design principles can improve product efficiency.
 
@@ -7,35 +7,26 @@ Estimate how much efficiency the product could improve, reported as:
 - `kWh/m^2/month`
 - `kWh/m^2/year`
 
-## Python Analysis Tool
-Run the local model:
+## Interactive Map Analysis (Any Lat/Lon)
+Use the map-based workflow to click any location, fetch PVGIS TMY data, and generate both roof + hat hourly analysis outputs.
 
-```bash
-python ant_roof_analysis.py
+Run:
+
+```bat
+run_interactive_map_analysis.bat
 ```
 
-The script prints:
-- baseline roof temperature
-- ant-inspired roof temperature
-- roof temperature drop
-- electricity savings (`kWh/m^2/month`, `kWh/m^2/year`)
+Then in the browser:
+1. Click a point on the map.
+2. Optionally enter a location name.
+3. Click **Run Analysis**.
 
-It also creates a clickable HTML report:
-- `ant_roof_cooling_report.html`
-
-In the HTML report, click each section to view:
-- equations used
-- input values
-- computed outputs
-
-## Example custom run
-
-```bash
-python ant_roof_analysis.py --solar 1000 --ambient-c 45 --alpha-ant 0.30 --eps-ant 0.96
-```
+Outputs are generated automatically in:
+- `roof analysis/` (HTML + CSV)
+- `hat analysis/` (HTML + CSV)
 
 ## Core Question
 How much additional energy efficiency can be achieved by applying Sahara desert ant-inspired strategies to the product?
 
 ## Notes
-This is a first-order physics model (solar absorption + convection + thermal radiation + roof conduction). For final engineering decisions, calibrate with measured roof and weather data.
+This is a first-order physics model (solar absorption + convection + thermal radiation + conduction/convection assumptions). For final engineering decisions, calibrate with measured data.
