@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -6,7 +6,7 @@
   <title>Roof PVGIS Hourly Analysis</title>
   <script>
     window.MathJax = {
-      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      tex: { inlineMath: [['\(', '\)']], displayMath: [['\[', '\]']] },
       svg: { fontCache: 'global' }
     };
   </script>
@@ -39,30 +39,72 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="nav"><a href="index.html">Back to Hourly Analysis</a></div>
+    <div class="nav"><a href="../Reports/Hourly analysis/index.html">Back to Hourly Analysis</a></div>
     <div class="title">Roof Hourly Benefit Analysis From PVGIS TMY</div>
-    <p class="subtitle">Cities: Marseille and Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
+    <p class="subtitle">Cities: Marseille, Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
     <details open>
       <summary>Equations Used</summary>
-      <div class="eq">\[\alpha G + h_{conv}\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]</div>
-      <div class="eq">\[q_{in}=\max(0,U(T_s-T_{in})),\; q_{saved}=q_{in,base}-q_{in,ant},\; E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]</div>
+      <div class="eq">\[q_{roof}=\alpha G + h_{conv}(T_{air} - T_s) + q_{LWR}\]</div>
+      <div class="eq">\[q_{LWR}=\varepsilon\sigma(T_{sky}^4 - T_s^4)\]</div>
+      <div class="eq">\[q_{in}=\max(0,U(T_s-T_{in}))\]</div>
+      <div class="eq">\[q_{saved}=q_{in,base}-q_{in,ant},\quad E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]</div>
     </details>
+
+    
+    <div class="card" style="margin-top: 16px;">
+      <div class="label">Simulation inputs used in the hourly PVGIS run</div>
+      <div class="grid" style="margin-top: 10px;">
+        <div>
+          <div class="label">Indoor setpoint</div>
+          <div class="value">24.0 °C</div>
+        </div>
+        <div>
+          <div class="label">Roof U-value</div>
+          <div class="value">1.20 W/m²K</div>
+        </div>
+        <div>
+          <div class="label">Cooling COP</div>
+          <div class="value">3.20</div>
+        </div>
+        <div>
+          <div class="label">Default convective h</div>
+          <div class="value">8.0 W/m²K</div>
+        </div>
+      </div>
+      <p class="subtitle" style="margin: 10px 0 0;">Hourly PVGIS runs replace the default convective coefficient with a wind-speed-based value each hour: \(h_{conv} = 5.7 + 3.8\,WS10m\).</p>
+    </div>
+    
+    
+    <div class="card" style="margin-top: 16px;">
+      <div class="label">Roof assumptions used in the simulation</div>
+      <p class="subtitle" style="margin: 8px 0 0;">Baseline roof is assumed to be conventional clay tiles. The ant-inspired case changes the roof optical properties only.</p>
+      <p class="subtitle" style="margin: 4px 0 0;">Clay tile baseline</p>
+      <div class="eq">\[\alpha_{base} = 0.85, \quad \varepsilon_{base} = 0.90\]</div>
+      <div class="eq">\[q_{roof,base} = 0.85G + h_{conv}(T_{air} - T_s) + q_{LWR,base}\]</div>
+      <div class="eq">\[q_{LWR,base} = 0.90\sigma (T_{sky}^4 - T_s^4)\]</div>
+      <p class="subtitle" style="margin: 12px 0 0;">Ant-inspired reflective roof</p>
+      <div class="eq">\[\alpha_{ant} = 0.35, \quad \varepsilon_{ant} = 0.95\]</div>
+      <div class="eq">\[q_{roof,ant} = 0.35G + h_{conv}(T_{air} - T_s) + q_{LWR,ant}\]</div>
+      <div class="eq">\[q_{LWR,ant} = 0.95\sigma (T_{sky}^4 - T_s^4)\]</div>
+      <div class="eq">\[\Delta \alpha = \alpha_{ant} - \alpha_{base} = -0.50,\quad \Delta \varepsilon = \varepsilon_{ant} - \varepsilon_{base} = 0.05\]</div>
+    </div>
+    
 
     <div class="compare-wrap">
       <div class="title" style="font-size:1.15rem; margin-bottom:6px;">Side-By-Side City Comparison</div>
       <div class="compare-grid">
         <div>
-          <h3>Annual Savings (kWh/mÂ²/year)</h3>
+          <h3>Annual Savings (kWh/m²/year)</h3>
           <div class="bar-row"><span>Marseille</span><div class="bar-track"><div class="bar-fill" style="width:54.3%"></div></div><strong>8.65</strong></div><div class="bar-row"><span>Cairo</span><div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div><strong>15.92</strong></div>
         </div>
         <div>
-          <h3>Average Temperature Drop (Â°C)</h3>
-          <div class="bar-row"><span>Marseille</span><div class="bar-track"><div class="bar-fill-alt" style="width:66.6%"></div></div><strong>3.57 Â°C</strong></div><div class="bar-row"><span>Cairo</span><div class="bar-track"><div class="bar-fill-alt" style="width:100.0%"></div></div><strong>5.36 Â°C</strong></div>
+          <h3>Average Temperature Drop (°C)</h3>
+          <div class="bar-row"><span>Marseille</span><div class="bar-track"><div class="bar-fill-alt" style="width:66.6%"></div></div><strong>3.57 °C</strong></div><div class="bar-row"><span>Cairo</span><div class="bar-track"><div class="bar-fill-alt" style="width:100.0%"></div></div><strong>5.36 °C</strong></div>
         </div>
       </div>
       <table>
-        <thead><tr><th>City</th><th>Annual Savings (kWh/mÂ²/year)</th><th>Avg Temp Drop (Â°C)</th></tr></thead>
+        <thead><tr><th>City</th><th>Annual Savings (kWh/m²/year)</th><th>Avg Temp Drop (°C)</th></tr></thead>
         <tbody><tr><td>Marseille</td><td>8.65</td><td>3.57</td></tr><tr><td>Cairo</td><td>15.92</td><td>5.36</td></tr></tbody>
       </table>
     </div>
@@ -73,16 +115,16 @@
         <div class="grid" style="margin-top:10px;">
           <div class="card">
             <div class="label">Average roof temperature drop (all TMY hours)</div>
-            <div class="value ok">3.57 Â°C</div>
+            <div class="value ok">3.57 °C</div>
           </div>
           <div class="card">
             <div class="label">Annual electricity savings</div>
-            <div class="value ok">8.65 kWh/mÂ²/year</div>
+            <div class="value ok">8.65 kWh/m²/year</div>
           </div>
         </div>
-        <h3>Monthly Savings (kWh/mÂ²)</h3>
+        <h3>Monthly Savings (kWh/m²)</h3>
         <table>
-          <thead><tr><th>Month</th><th>kWh/mÂ²</th></tr></thead>
+          <thead><tr><th>Month</th><th>kWh/m²</th></tr></thead>
           <tbody><tr><td>01</td><td>0.009</td></tr>
 <tr><td>02</td><td>0.067</td></tr>
 <tr><td>03</td><td>0.545</td></tr>
@@ -98,7 +140,7 @@
         </table>
         <h3>Average Benefit By Hour Of Day</h3>
         <table>
-          <thead><tr><th>Hour</th><th>Avg Temp Drop (Â°C)</th><th>Avg Savings (kWh/mÂ²/h)</th></tr></thead>
+          <thead><tr><th>Hour</th><th>Avg Temp Drop (°C)</th><th>Avg Savings (kWh/m²/h)</th></tr></thead>
           <tbody><tr><td>00:00</td><td>0.09</td><td>0.0000</td></tr>
 <tr><td>01:00</td><td>0.09</td><td>0.0000</td></tr>
 <tr><td>02:00</td><td>0.09</td><td>0.0000</td></tr>
@@ -131,16 +173,16 @@
         <div class="grid" style="margin-top:10px;">
           <div class="card">
             <div class="label">Average roof temperature drop (all TMY hours)</div>
-            <div class="value ok">5.36 Â°C</div>
+            <div class="value ok">5.36 °C</div>
           </div>
           <div class="card">
             <div class="label">Annual electricity savings</div>
-            <div class="value ok">15.92 kWh/mÂ²/year</div>
+            <div class="value ok">15.92 kWh/m²/year</div>
           </div>
         </div>
-        <h3>Monthly Savings (kWh/mÂ²)</h3>
+        <h3>Monthly Savings (kWh/m²)</h3>
         <table>
-          <thead><tr><th>Month</th><th>kWh/mÂ²</th></tr></thead>
+          <thead><tr><th>Month</th><th>kWh/m²</th></tr></thead>
           <tbody><tr><td>01</td><td>0.648</td></tr>
 <tr><td>02</td><td>0.771</td></tr>
 <tr><td>03</td><td>1.185</td></tr>
@@ -156,7 +198,7 @@
         </table>
         <h3>Average Benefit By Hour Of Day</h3>
         <table>
-          <thead><tr><th>Hour</th><th>Avg Temp Drop (Â°C)</th><th>Avg Savings (kWh/mÂ²/h)</th></tr></thead>
+          <thead><tr><th>Hour</th><th>Avg Temp Drop (°C)</th><th>Avg Savings (kWh/m²/h)</th></tr></thead>
           <tbody><tr><td>00:00</td><td>0.12</td><td>0.0000</td></tr>
 <tr><td>01:00</td><td>0.12</td><td>0.0000</td></tr>
 <tr><td>02:00</td><td>0.12</td><td>0.0000</td></tr>
@@ -187,5 +229,3 @@
   </div>
 </body>
 </html>
-
-

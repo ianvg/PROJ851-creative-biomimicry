@@ -262,9 +262,67 @@ def _hourly_rows(hourly_avg: list[dict[str, float]]) -> str:
     return "\n".join(rows)
 
 
-def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> None:
-    eq1 = r"\[\alpha G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]"
-    eq2 = r"\[q_{in}=\max(0,U(T_s-T_{in})),\; q_{saved}=q_{in,base}-q_{in,ant},\; E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]"
+def _roof_assumptions_block(inputs: ModelInputs) -> str:
+    eq_base_1 = rf"\[\alpha_{{base}} = {inputs.baseline_solar_absorptance:.2f}, \quad \varepsilon_{{base}} = {inputs.baseline_ir_emissivity:.2f}\]"
+    eq_base_2 = rf"\[q_{{roof,base}} = {inputs.baseline_solar_absorptance:.2f}G + h_{{conv}}(T_{{air}} - T_s) + q_{{LWR,base}}\]"
+    eq_base_3 = rf"\[q_{{LWR,base}} = {inputs.baseline_ir_emissivity:.2f}\sigma (T_{{sky}}^4 - T_s^4)\]"
+    eq_ant_1 = rf"\[\alpha_{{ant}} = {inputs.ant_solar_absorptance:.2f}, \quad \varepsilon_{{ant}} = {inputs.ant_ir_emissivity:.2f}\]"
+    eq_ant_2 = rf"\[q_{{roof,ant}} = {inputs.ant_solar_absorptance:.2f}G + h_{{conv}}(T_{{air}} - T_s) + q_{{LWR,ant}}\]"
+    eq_ant_3 = rf"\[q_{{LWR,ant}} = {inputs.ant_ir_emissivity:.2f}\sigma (T_{{sky}}^4 - T_s^4)\]"
+    eq_delta = rf"\[\Delta \alpha = \alpha_{{ant}} - \alpha_{{base}} = {inputs.ant_solar_absorptance - inputs.baseline_solar_absorptance:.2f},\quad \Delta \varepsilon = \varepsilon_{{ant}} - \varepsilon_{{base}} = {inputs.ant_ir_emissivity - inputs.baseline_ir_emissivity:.2f}\]"
+
+    return f"""
+    <div class="card" style="margin-top: 16px;">
+      <div class="label">Roof assumptions used in the simulation</div>
+      <p class="subtitle" style="margin: 8px 0 0;">Baseline roof is assumed to be conventional clay tiles. The ant-inspired case changes the roof optical properties only.</p>
+      <p class="subtitle" style="margin: 4px 0 0;">Clay tile baseline</p>
+      <div class="eq">{eq_base_1}</div>
+      <div class="eq">{eq_base_2}</div>
+      <div class="eq">{eq_base_3}</div>
+      <p class="subtitle" style="margin: 12px 0 0;">Ant-inspired reflective roof</p>
+      <div class="eq">{eq_ant_1}</div>
+      <div class="eq">{eq_ant_2}</div>
+      <div class="eq">{eq_ant_3}</div>
+      <div class="eq">{eq_delta}</div>
+    </div>
+    """
+
+
+def _simulation_inputs_block(inputs: ModelInputs) -> str:
+    return f"""
+    <div class="card" style="margin-top: 16px;">
+      <div class="label">Simulation inputs used in the hourly PVGIS run</div>
+      <div class="grid" style="margin-top: 10px;">
+        <div>
+          <div class="label">Indoor setpoint</div>
+          <div class="value">{inputs.indoor_temp_c:.1f} °C</div>
+        </div>
+        <div>
+          <div class="label">Roof U-value</div>
+          <div class="value">{inputs.roof_u_value_w_m2k:.2f} W/m²K</div>
+        </div>
+        <div>
+          <div class="label">Cooling COP</div>
+          <div class="value">{inputs.cooling_cop:.2f}</div>
+        </div>
+        <div>
+          <div class="label">Default convective h</div>
+          <div class="value">{inputs.convective_h_w_m2k:.1f} W/m²K</div>
+        </div>
+      </div>
+      <p class="subtitle" style="margin: 10px 0 0;">Hourly PVGIS runs replace the default convective coefficient with a wind-speed-based value each hour: \(h_{{conv}} = 5.7 + 3.8\,WS10m\).</p>
+    </div>
+    """
+
+
+def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, inputs: ModelInputs | None = None) -> None:
+    eq1 = r"\[q_{roof}=\alpha G + h_{conv}(T_{air} - T_s) + q_{LWR}\]"
+    eq1b = r"\[q_{LWR}=\varepsilon\sigma(T_{sky}^4 - T_s^4)\]"
+    eq2 = r"\[q_{in}=\max(0,U(T_s-T_{in}))\]"
+    eq3 = r"\[q_{saved}=q_{in,base}-q_{in,ant},\quad E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]"
+    inputs = inputs or ModelInputs()
+    assumptions_block = _roof_assumptions_block(inputs)
+    simulation_inputs_block = _simulation_inputs_block(inputs)
 
     max_annual = max((s["annual_kwh_m2"] for s in summaries), default=1.0) or 1.0
     max_drop = max((s["avg_temp_drop_c"] for s in summaries), default=1.0) or 1.0
@@ -316,22 +374,26 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
 """
         )
 
+    city_names = ", ".join(s["city"].title() for s in summaries)
     html = f"""<!doctype html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-  <meta charset=\"utf-8\" />
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roof PVGIS Hourly Analysis</title>
   <script>
     window.MathJax = {{
-      tex: {{ inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]']] }},
+      tex: {{ inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }},
       svg: {{ fontCache: 'global' }}
     }};
   </script>
-  <script defer src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <style>
     body {{ font-family: Segoe UI, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f4f7f5; color: #1d2a2a; }}
     .wrap {{ max-width: 1000px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: #ffffff; border: 1px solid #d7e1dc; border-radius: 12px; }}
+    .nav a {{ color: #0b7285; text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
     .title {{ font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }}
     .subtitle {{ color: #5b6b6b; margin-top: 0; }}
     .grid {{ display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }}
@@ -353,19 +415,25 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
   </style>
 </head>
 <body>
-  <div class=\"wrap\">
-    <div class=\"title\">Roof Hourly Benefit Analysis From PVGIS TMY</div>
-    <p class=\"subtitle\">Cities: Marseille and Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
+  <div class="wrap">
+    <div class="nav"><a href="../Reports/Hourly analysis/index.html">Back to Hourly Analysis</a></div>
+    <div class="title">Roof Hourly Benefit Analysis From PVGIS TMY</div>
+    <p class="subtitle">Cities: {city_names}. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
     <details open>
       <summary>Equations Used</summary>
-      <div class=\"eq\">{eq1}</div>
-      <div class=\"eq\">{eq2}</div>
+      <div class="eq">{eq1}</div>
+      <div class="eq">{eq1b}</div>
+      <div class="eq">{eq2}</div>
+      <div class="eq">{eq3}</div>
     </details>
 
-    <div class=\"compare-wrap\">
-      <div class=\"title\" style=\"font-size:1.15rem; margin-bottom:6px;\">Side-By-Side City Comparison</div>
-      <div class=\"compare-grid\">
+    {simulation_inputs_block}
+    {assumptions_block}
+
+    <div class="compare-wrap">
+      <div class="title" style="font-size:1.15rem; margin-bottom:6px;">Side-By-Side City Comparison</div>
+      <div class="compare-grid">
         <div>
           <h3>Annual Savings (kWh/m²/year)</h3>
           {''.join(annual_bars)}
@@ -387,7 +455,6 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
 </html>
 """
     output_path.write_text(html, encoding="utf-8")
-
 
 def write_hourly_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
@@ -439,7 +506,18 @@ def main() -> None:
             csv_name = f"roof_hourly_{city}.csv"
             write_hourly_csv(Path(csv_name), hourly_rows)
 
-        render_hourly_html(summaries, html_path)
+        report_inputs = ModelInputs(
+            sky_temp_c=args.ambient_c - args.sky_offset_c,
+            convective_h_w_m2k=args.h,
+            baseline_solar_absorptance=args.alpha_baseline,
+            baseline_ir_emissivity=args.eps_baseline,
+            ant_solar_absorptance=args.alpha_ant,
+            ant_ir_emissivity=args.eps_ant,
+            indoor_temp_c=args.indoor_c,
+            roof_u_value_w_m2k=args.u_value,
+            cooling_cop=args.cop,
+        )
+        render_hourly_html(summaries, html_path, report_inputs)
         print("Roof PVGIS hourly analysis complete")
         for s in summaries:
             print(f"{s['city'].title()}: avg drop {s['avg_temp_drop_c']:.2f} C, annual {s['annual_kwh_m2']:.2f} kWh/m^2/year")
@@ -474,6 +552,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
 

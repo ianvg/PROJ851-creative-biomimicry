@@ -258,7 +258,7 @@ def _hourly_rows(hourly_avg: list[dict[str, float]]) -> str:
 
 
 def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> None:
-    eq1 = r"\[\alpha f_{view} G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]"
+    eq1 = r"\[\alpha f_{view} G + h_{conv}\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]"
     eq2 = r"\[q_{reduction}=(\alpha_{base}-\alpha_{ant})\,f_{view}\,G,\; E_{equiv}=\frac{q_{reduction}}{COP\cdot 1000}\]"
 
     max_annual = max((s["annual_kwh_m2"] for s in summaries), default=1.0) or 1.0
@@ -327,6 +327,9 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
   <style>
     body {{ font-family: Segoe UI, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f6f2e8; color: #2d2417; }}
     .wrap {{ max-width: 1000px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: #fffdfa; border: 1px solid #e9dcc5; border-radius: 12px; }}
+    .nav a {{ color: #a35f14; text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
     .title {{ font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }}
     .subtitle {{ color: #6a5c46; margin-top: 0; }}
     .grid {{ display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }}
@@ -349,6 +352,7 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path) -> No
 </head>
 <body>
   <div class=\"wrap\">
+    <div class=\"nav\"><a href=\"../Reports/Hourly analysis/index.html\">Back to Hourly Analysis</a></div>
     <div class=\"title\">Round Hat Hourly Benefit Analysis From PVGIS TMY</div>
     <p class=\"subtitle\">Cities: Marseille and Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
@@ -466,5 +470,10 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
 
 

@@ -641,10 +641,10 @@ def single_run_summary(result: ModelResults, inputs: ModelInputs) -> dict[str, A
     }
 def _roof_assumptions_block(inputs: ModelInputs) -> str:
     eq_base_1 = rf"$$\alpha_{{base}} = {inputs.baseline_solar_absorptance:.2f}, \quad \varepsilon_{{base}} = {inputs.baseline_ir_emissivity:.2f}$$"
-    eq_base_2 = rf"$$q_{{roof,base}} = {inputs.baseline_solar_absorptance:.2f}G + h(T_{{air}} - T_s) + q_{{LWR,base}}$$"
+    eq_base_2 = rf"$$q_{{roof,base}} = {inputs.baseline_solar_absorptance:.2f}G + h_{{conv}}(T_{{air}} - T_s) + q_{{LWR,base}}$$"
     eq_base_3 = rf"$$q_{{LWR,base}} = {inputs.baseline_ir_emissivity:.2f}\sigma [ F_{{gnd}}\frac{{T_s^4 - T_{{gnd}}^4}}{{T_s - T_{{gnd}}}}(T_{{gnd}} - T_s) + F_{{sky}}\frac{{T_s^4 - T_{{sky}}^4}}{{T_s - T_{{sky}}}}(T_{{sky}} - T_s) + F_{{air}}\frac{{T_s^4 - T_{{air}}^4}}{{T_s - T_{{air}}}}(T_{{air}} - T_s) + F_{{srd}}\frac{{T_s^4 - T_{{srd}}^4}}{{T_s - T_{{srd}}}}(T_{{srd}} - T_s) ]$$"
     eq_ant_1 = rf"$$\alpha_{{ant}} = {inputs.ant_solar_absorptance:.2f}, \quad \varepsilon_{{ant}} = {inputs.ant_ir_emissivity:.2f}$$"
-    eq_ant_2 = rf"$$q_{{roof,ant}} = {inputs.ant_solar_absorptance:.2f}G + h(T_{{air}} - T_s) + q_{{LWR,ant}}$$"
+    eq_ant_2 = rf"$$q_{{roof,ant}} = {inputs.ant_solar_absorptance:.2f}G + h_{{conv}}(T_{{air}} - T_s) + q_{{LWR,ant}}$$"
     eq_ant_3 = rf"$$q_{{LWR,ant}} = {inputs.ant_ir_emissivity:.2f}\sigma [ F_{{gnd}}\frac{{T_s^4 - T_{{gnd}}^4}}{{T_s - T_{{gnd}}}}(T_{{gnd}} - T_s) + F_{{sky}}\frac{{T_s^4 - T_{{sky}}^4}}{{T_s - T_{{sky}}}}(T_{{sky}} - T_s) + F_{{air}}\frac{{T_s^4 - T_{{air}}^4}}{{T_s - T_{{air}}}}(T_{{air}} - T_s) + F_{{srd}}\frac{{T_s^4 - T_{{srd}}^4}}{{T_s - T_{{srd}}}}(T_{{srd}} - T_s) ]$$"
     eq_delta = rf"$$\Delta \alpha = \alpha_{{ant}} - \alpha_{{base}} = {inputs.ant_solar_absorptance - inputs.baseline_solar_absorptance:.2f},\quad \Delta \varepsilon = \varepsilon_{{ant}} - \varepsilon_{{base}} = {inputs.ant_ir_emissivity - inputs.baseline_ir_emissivity:.2f}$$"
 
@@ -668,7 +668,7 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
     eq1 = r"$$q_{LWR}=h_{r,gnd}(T_{gnd}-T_s)+h_{r,sky}(T_{sky}-T_s)+h_{r,air}(T_{air}-T_s)+h_{r,srd}(T_{srd}-T_s)$$"
     eq1b = r"$$h_{r,gnd}=\varepsilon\sigma F_{gnd}\frac{T_s^4-T_{gnd}^4}{T_s-T_{gnd}},\quad h_{r,sky}=\varepsilon\sigma F_{sky}\frac{T_s^4-T_{sky}^4}{T_s-T_{sky}}$$"
     eq1c = r"$$h_{r,air}=\varepsilon\sigma F_{air}\frac{T_s^4-T_{air}^4}{T_s-T_{air}},\quad h_{r,srd}=\varepsilon\sigma F_{srd}\frac{T_s^4-T_{srd}^4}{T_s-T_{srd}}$$"
-    eq1d = r"$$\alpha G + h(T_{air} - T_s) + q_{LWR} = 0$$"
+    eq1d = r"$$\alpha G + h_{conv}(T_{air} - T_s) + q_{LWR} = 0$$"
     eq2 = r"$$Q_{cool}=H_{roof}\,\mathrm{max}(0, T_s-T_{in}) + (H_{wall}+H_{win}+H_{door})\,\mathrm{max}(0, T_{air}-T_{in})$$"
     eq3 = r"$$Q_{saved}=Q_{cool,base}-Q_{cool,ant},\quad E_{saved}=\frac{Q_{saved}}{COP\cdot 1000}$$"
     geometry_inputs = geometry_inputs or ModelInputs()
@@ -906,3 +906,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

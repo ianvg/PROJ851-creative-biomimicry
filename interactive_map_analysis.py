@@ -248,6 +248,9 @@ def render_report(title: str, subtitle: str, eq1: str, eq2: str, summary: dict[s
   <style>
     body {{ font-family: Segoe UI, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f5f7f6; color: #1f2a2a; }}
     .wrap {{ max-width: 980px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: white; border: 1px solid #dbe3df; border-radius: 12px; }}
+    .nav a {{ color: #0b7285; text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
     .title {{ font-size: 1.7rem; font-weight: 700; margin-bottom: 4px; }}
     .subtitle {{ margin-top: 0; color: #556; }}
     .grid {{ display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }}
@@ -263,6 +266,7 @@ def render_report(title: str, subtitle: str, eq1: str, eq2: str, summary: dict[s
 </head>
 <body>
   <div class=\"wrap\">
+    <div class=\"nav\"><a href=\"../Reports/Hourly analysis/index.html\">Back to Hourly Analysis</a></div>
     <div class=\"title\">{title}</div>
     <p class=\"subtitle\">{subtitle}</p>
 
@@ -421,7 +425,7 @@ def run_location_analysis(lat: float, lon: float, label: str) -> dict[str, str]:
     render_report(
         title=f"Roof Hourly Benefit Analysis - {label}",
         subtitle=f"PVGIS TMY at lat {lat:.4f}, lon {lon:.4f}",
-        eq1=r"\[\alpha G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]",
+        eq1=r"\[\alpha G + h_{conv}\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]",
         eq2=r"\[q_{in}=\max(0,U(T_s-T_{in})),\; q_{saved}=q_{in,base}-q_{in,ant},\; E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]",
         summary=roof_summary,
         out_path=roof_html,
@@ -429,7 +433,7 @@ def run_location_analysis(lat: float, lon: float, label: str) -> dict[str, str]:
     render_report(
         title=f"Hat Hourly Benefit Analysis - {label}",
         subtitle=f"PVGIS TMY at lat {lat:.4f}, lon {lon:.4f}",
-        eq1=r"\[\alpha f_{view} G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]",
+        eq1=r"\[\alpha f_{view} G + h_{conv}\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]",
         eq2=r"\[q_{reduction}=(\alpha_{base}-\alpha_{ant})\,f_{view}\,G,\; E_{equiv}=\frac{q_{reduction}}{COP\cdot 1000}\]",
         summary=hat_summary,
         out_path=hat_html,
@@ -578,6 +582,11 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
 
 
 

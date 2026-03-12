@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -29,23 +29,24 @@
 </head>
 <body>
   <div class="wrap">
+    <div class="nav"><a href="index.html">Back to Hourly Analysis</a></div>
     <div class="title">Roof Hourly Benefit Analysis - cairo</div>
     <p class="subtitle">PVGIS TMY at lat 30.0358, lon 31.2012</p>
 
     <div class="grid">
-      <div class="card"><div class="label">Average Temperature Drop</div><div class="value">5.35 °C</div></div>
-      <div class="card"><div class="label">Annual Savings</div><div class="value">15.87 kWh/m²/year</div></div>
+      <div class="card"><div class="label">Average Temperature Drop</div><div class="value">5.35 Â°C</div></div>
+      <div class="card"><div class="label">Annual Savings</div><div class="value">15.87 kWh/mÂ²/year</div></div>
     </div>
 
     <details open>
       <summary>Equations Used</summary>
-      <div class="eq">\[\alpha G + h\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]</div>
+      <div class="eq">\[\alpha G + h_{conv}\,(T_a - T_s) + \varepsilon\sigma\,(T_{sky}^{4} - T_{s}^{4}) = 0\]</div>
       <div class="eq">\[q_{in}=\max(0,U(T_s-T_{in})),\; q_{saved}=q_{in,base}-q_{in,ant},\; E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]</div>
     </details>
 
     <details>
-      <summary>Monthly Savings (kWh/m²)</summary>
-      <table><thead><tr><th>Month</th><th>kWh/m²</th></tr></thead><tbody><tr><td>01</td><td>0.647</td></tr>
+      <summary>Monthly Savings (kWh/mÂ²)</summary>
+      <table><thead><tr><th>Month</th><th>kWh/mÂ²</th></tr></thead><tbody><tr><td>01</td><td>0.647</td></tr>
 <tr><td>02</td><td>0.770</td></tr>
 <tr><td>03</td><td>1.181</td></tr>
 <tr><td>04</td><td>1.515</td></tr>
@@ -61,7 +62,7 @@
 
     <details>
       <summary>Average Benefit By Hour Of Day</summary>
-      <table><thead><tr><th>Hour</th><th>Avg Temp Drop (°C)</th><th>Avg Savings (kWh/m²/h)</th></tr></thead><tbody><tr><td>00:00</td><td>0.12</td><td>0.0000</td></tr>
+      <table><thead><tr><th>Hour</th><th>Avg Temp Drop (Â°C)</th><th>Avg Savings (kWh/mÂ²/h)</th></tr></thead><tbody><tr><td>00:00</td><td>0.12</td><td>0.0000</td></tr>
 <tr><td>01:00</td><td>0.12</td><td>0.0000</td></tr>
 <tr><td>02:00</td><td>0.12</td><td>0.0000</td></tr>
 <tr><td>03:00</td><td>0.14</td><td>0.0000</td></tr>
@@ -89,3 +90,5 @@
   </div>
 </body>
 </html>
+
+
