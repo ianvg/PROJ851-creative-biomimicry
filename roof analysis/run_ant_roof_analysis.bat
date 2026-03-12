@@ -2,10 +2,10 @@
 setlocal
 
 set "SCRIPT_DIR=%~dp0"
-set "PY_SCRIPT=%SCRIPT_DIR%ant_roof_analysis.py"
+set "PY_SCRIPT=%SCRIPT_DIR%simple_roof_analysis.py"
 
 if not exist "%PY_SCRIPT%" (
-  echo Error: Could not find ant_roof_analysis.py in %SCRIPT_DIR%
+  echo Error: Could not find simple_roof_analysis.py in %SCRIPT_DIR%
   exit /b 1
 )
 

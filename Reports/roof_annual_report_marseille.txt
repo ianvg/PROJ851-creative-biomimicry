@@ -1,0 +1,33 @@
+
+ANNUAL ROOF FILM REPORT: MARSEILLE
+
+Study basis:
+- Data source: PVGIS Typical Meteorological Year (TMY), hourly
+- Location: Marseille
+- Scenario: baseline roof vs ant-inspired film roof
+
+Annual performance:
+- Annual electric savings: 8.517 kWh/m2
+- Average baseline roof temperature:
+19.40 C
+- Average roof temperature with film:
+15.80 C
+- Average roof temperature reduction: 3.60 C
+
+Best hourly benefit:
+- Maximum average hourly temperature drop: 11.11 C
+- Maximum average hourly electric savings: 0.0034 kWh/m2-hour
+
+Monthly electric savings:
+- Month 01: 0.008 kWh/m2
+- Month 02: 0.060 kWh/m2
+- Month 03: 0.524 kWh/m2
+- Month 04: 1.085 kWh/m2
+- Month 05: 1.266 kWh/m2
+- Month 06: 1.373 kWh/m2
+- Month 07: 1.236 kWh/m2
+- Month 08: 1.427 kWh/m2
+- Month 09: 0.996 kWh/m2
+- Month 10: 0.423 kWh/m2
+- Month 11: 0.111 kWh/m2
+- Month 12: 0.010 kWh/m2

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jupyter Notebook Analysis</title>
+  <style>
+    :root {
+      --bg: #f3f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .nav a:hover { text-decoration: underline; }
+    .title { font-size: 2rem; font-weight: 700; margin: 0 0 8px; }
+    .subtitle { margin: 0 0 18px; color: var(--muted); }
+    .list { display: grid; gap: 14px; }
+    .card {
+      display: block;
+      padding: 16px 18px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    .card:hover { border-color: var(--accent); }
+    .name { color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+    .desc { color: var(--muted); margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <a href="../index.html">Reports Home</a>
+    </div>
+    <p class="title">Jupyter Notebook Analysis</p>
+    <p class="subtitle">Notebook-generated HTML outputs for focused analysis workflows.</p>
+    <div class="list">
+      <a class="card" href="monthly_roof_report_marseille.html">
+        <div class="name">Monthly Roof Report: Marseille</div>
+        <p class="desc">Monthly electric savings summary from the notebook-based Marseille roof study.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

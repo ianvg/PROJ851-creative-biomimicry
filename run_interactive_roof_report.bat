@@ -4,7 +4,7 @@ setlocal
 set "PYTHON_EXE=C:\Users\ianva\.pyenv\pyenv-win\versions\3.10.5\python.exe"
 set "SCRIPT_DIR=%~dp0"
 
-"%PYTHON_EXE%" "%SCRIPT_DIR%ant_roof_analysis.py" ^
+"%PYTHON_EXE%" "%SCRIPT_DIR%simple_roof_analysis.py" ^
   --solar 900 ^
   --ambient-c 42 ^
   --sky-c 15 ^

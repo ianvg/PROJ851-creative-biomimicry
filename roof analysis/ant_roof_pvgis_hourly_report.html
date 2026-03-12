@@ -44,11 +44,14 @@
     <p class="subtitle">Cities: Marseille, Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
     <details open>
-      <summary>Equations Used</summary>
-      <div class="eq">\[q_{roof}=\alpha G + h_{conv}(T_{air} - T_s) + q_{LWR}\]</div>
-      <div class="eq">\[q_{LWR}=\varepsilon\sigma(T_{sky}^4 - T_s^4)\]</div>
-      <div class="eq">\[q_{in}=\max(0,U(T_s-T_{in}))\]</div>
-      <div class="eq">\[q_{saved}=q_{in,base}-q_{in,ant},\quad E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]</div>
+      <summary>Hourly Roof Benefit Equations Used</summary>
+      <p class="subtitle" style="margin: 8px 0 10px;">Each PVGIS hour is solved twice, once for the baseline roof and once for the ant-inspired roof, using the same weather inputs and different optical properties.</p>
+      <div class="eq">\[G=\max\!\left(0, G_{\mathrm{PVGIS}}\right), \qquad h_{conv}=5.7+3.8\,WS10m, \qquad T_{sky}=T_{air}-\Delta T_{sky}\]</div>
+      <div class="eq">\[\alpha_i G + h_{conv}\left(T_{air}-T_{s,i}\right) + \varepsilon_i \sigma \left(T_{sky}^{4}-T_{s,i}^{4}\right)=0,\qquad i\in\{\mathrm{base},\mathrm{ant}\}\]</div>
+      <div class="eq">\[\Delta T_s = T_{s,\mathrm{base}} - T_{s,\mathrm{ant}}\]</div>
+      <div class="eq">\[q_{in,i}=\max\!\left(0, U\left(T_{s,i}-T_{in}\right)\right)\]</div>
+      <div class="eq">\[q_{saved}=q_{in,\mathrm{base}}-q_{in,\mathrm{ant}}\]</div>
+      <div class="eq">\[E_{saved}=\frac{q_{saved}}{COP \cdot 1000}\;\;[\mathrm{kWh/m^2\ per\ hour}]\]</div>
     </details>
 
     
@@ -114,6 +117,14 @@
         <summary>Marseille - Hourly And Monthly Benefits</summary>
         <div class="grid" style="margin-top:10px;">
           <div class="card">
+            <div class="label">Average baseline roof surface temperature (all TMY hours)</div>
+            <div class="value">19.87 °C</div>
+          </div>
+          <div class="card">
+            <div class="label">Average ant-hair inspired roof surface temperature (all TMY hours)</div>
+            <div class="value">16.30 °C</div>
+          </div>
+          <div class="card">
             <div class="label">Average roof temperature drop (all TMY hours)</div>
             <div class="value ok">3.57 °C</div>
           </div>
@@ -171,6 +182,14 @@
       <details>
         <summary>Cairo - Hourly And Monthly Benefits</summary>
         <div class="grid" style="margin-top:10px;">
+          <div class="card">
+            <div class="label">Average baseline roof surface temperature (all TMY hours)</div>
+            <div class="value">27.85 °C</div>
+          </div>
+          <div class="card">
+            <div class="label">Average ant-hair inspired roof surface temperature (all TMY hours)</div>
+            <div class="value">22.48 °C</div>
+          </div>
           <div class="card">
             <div class="label">Average roof temperature drop (all TMY hours)</div>
             <div class="value ok">5.36 °C</div>

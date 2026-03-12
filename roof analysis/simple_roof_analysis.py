@@ -17,6 +17,8 @@ CITY_COORDS = {
     "marseille": (43.2965, 5.3698),
     "cairo": (30.0444, 31.2357),
 }
+HOURLY_ANALYSIS_DIR = Path(__file__).resolve().parents[1] / "Reports" / "Hourly analysis"
+HOURLY_ROOF_HTML_DIR = HOURLY_ANALYSIS_DIR / "Roof analysis"
 
 
 @dataclass
@@ -222,6 +224,8 @@ def hourly_analysis_for_city(city: str, args: argparse.Namespace) -> tuple[list[
         hour_bins_kwh[hour].append(kwh_hour)
 
     annual_kwh = sum(r["electric_saved_kwh_m2_hour"] for r in hourly_out)
+    avg_baseline_temp_c = sum(r["baseline_roof_temp_c"] for r in hourly_out) / len(hourly_out)
+    avg_ant_temp_c = sum(r["ant_roof_temp_c"] for r in hourly_out) / len(hourly_out)
     avg_drop = sum(r["temp_drop_c"] for r in hourly_out) / len(hourly_out)
 
     hourly_avg = []
@@ -240,6 +244,8 @@ def hourly_analysis_for_city(city: str, args: argparse.Namespace) -> tuple[list[
         "city": city,
         "annual_kwh_m2": annual_kwh,
         "monthly_kwh_m2": dict(sorted(monthly_kwh.items())),
+        "avg_baseline_roof_temp_c": avg_baseline_temp_c,
+        "avg_ant_roof_temp_c": avg_ant_temp_c,
         "avg_temp_drop_c": avg_drop,
         "hourly_avg": hourly_avg,
     }
@@ -260,6 +266,132 @@ def _hourly_rows(hourly_avg: list[dict[str, float]]) -> str:
             f"<tr><td>{r['hour']:02d}:00</td><td>{r['avg_temp_drop_c']:.2f}</td><td>{r['avg_kwh_m2_hour']:.4f}</td></tr>"
         )
     return "\n".join(rows)
+
+
+def build_hourly_analysis_index(output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    roof_dir = output_dir / "Roof analysis"
+    hat_dir = output_dir / "Hat analysis"
+    roof_dir.mkdir(parents=True, exist_ok=True)
+    hat_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_cards: list[str] = []
+    for path in sorted(output_dir.glob("*.csv"), key=lambda item: item.name.lower()):
+        csv_cards.append(
+            f'      <a class="card" href="{path.name}"><div class="name">{path.name}</div><p class="desc">Hourly CSV data</p></a>'
+        )
+
+    for folder_name, section_title, section_desc in (
+        ("Roof analysis", "Roof hourly HTML reports", "Roof hourly reports grouped in one folder."),
+        ("Hat analysis", "Hat hourly HTML reports", "Hat hourly reports grouped in one folder."),
+    ):
+        section_dir = output_dir / folder_name
+        report_cards = []
+        for path in sorted(section_dir.glob("*.html"), key=lambda item: item.name.lower()):
+            if path.name == "index.html":
+                continue
+            report_cards.append(
+                f'      <a class="card" href="{path.name}"><div class="name">{path.name}</div><p class="desc">Hourly HTML report</p></a>'
+            )
+        section_html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{section_title}</title>
+  <style>
+    :root {{
+      --bg: #f2f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }}
+    .wrap {{ max-width: 920px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }}
+    .nav a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
+    .title {{ font-size: 2rem; font-weight: 700; margin: 0 0 8px; }}
+    .subtitle {{ margin: 0 0 18px; color: var(--muted); }}
+    .list {{ display: grid; gap: 14px; }}
+    .card {{ display: block; padding: 16px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none; }}
+    .card:hover {{ border-color: var(--accent); }}
+    .name {{ color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }}
+    .desc {{ color: var(--muted); margin: 0; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="../index.html">Hourly Analysis</a><a href="../../index.html">Reports Home</a></div>
+    <p class="title">{section_title}</p>
+    <p class="subtitle">{section_desc}</p>
+    <div class="list">
+{chr(10).join(report_cards) if report_cards else '      <div class="card"><div class="name">No reports yet</div><p class="desc">Run an hourly analysis to populate this folder.</p></div>'}
+    </div>
+  </div>
+</body>
+</html>
+"""
+        (section_dir / "index.html").write_text(section_html, encoding="utf-8")
+
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hourly Analysis Reports</title>
+  <style>
+    :root {{
+      --bg: #f2f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }}
+    .wrap {{ max-width: 920px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }}
+    .nav a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
+    .title {{ font-size: 2rem; font-weight: 700; margin: 0 0 8px; }}
+    .subtitle {{ margin: 0 0 18px; color: var(--muted); }}
+    .list {{ display: grid; gap: 14px; }}
+    .card {{ display: block; padding: 16px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none; }}
+    .card:hover {{ border-color: var(--accent); }}
+    .name {{ color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }}
+    .desc {{ color: var(--muted); margin: 0; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="../index.html">Reports Home</a><a href="../interactive_roof_report.html">Interactive Roof Report</a></div>
+    <p class="title">Hourly Analysis</p>
+    <p class="subtitle">Hourly roof and hat PVGIS outputs with separate HTML report folders.</p>
+    <div class="list">
+      <a class="card" href="Roof analysis/index.html"><div class="name">Roof analysis</div><p class="desc">Roof hourly HTML reports</p></a>
+      <a class="card" href="Hat analysis/index.html"><div class="name">Hat analysis</div><p class="desc">Hat hourly HTML reports</p></a>
+{chr(10).join(csv_cards) if csv_cards else '      <div class="card"><div class="name">No CSV outputs yet</div><p class="desc">Run an hourly analysis to generate hourly CSV files.</p></div>'}
+    </div>
+  </div>
+</body>
+</html>
+"""
+    (output_dir / "index.html").write_text(html, encoding="utf-8")
 
 
 def _roof_assumptions_block(inputs: ModelInputs) -> str:
@@ -316,10 +448,12 @@ def _simulation_inputs_block(inputs: ModelInputs) -> str:
 
 
 def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, inputs: ModelInputs | None = None) -> None:
-    eq1 = r"\[q_{roof}=\alpha G + h_{conv}(T_{air} - T_s) + q_{LWR}\]"
-    eq1b = r"\[q_{LWR}=\varepsilon\sigma(T_{sky}^4 - T_s^4)\]"
-    eq2 = r"\[q_{in}=\max(0,U(T_s-T_{in}))\]"
-    eq3 = r"\[q_{saved}=q_{in,base}-q_{in,ant},\quad E_{saved}=\frac{q_{saved}}{COP\cdot 1000}\]"
+    eq0 = r"\[G=\max\!\left(0, G_{\mathrm{PVGIS}}\right), \qquad h_{conv}=5.7+3.8\,WS10m, \qquad T_{sky}=T_{air}-\Delta T_{sky}\]"
+    eq1 = r"\[\alpha_i G + h_{conv}\left(T_{air}-T_{s,i}\right) + \varepsilon_i \sigma \left(T_{sky}^{4}-T_{s,i}^{4}\right)=0,\qquad i\in\{\mathrm{base},\mathrm{ant}\}\]"
+    eq2 = r"\[\Delta T_s = T_{s,\mathrm{base}} - T_{s,\mathrm{ant}}\]"
+    eq3 = r"\[q_{in,i}=\max\!\left(0, U\left(T_{s,i}-T_{in}\right)\right)\]"
+    eq4 = r"\[q_{saved}=q_{in,\mathrm{base}}-q_{in,\mathrm{ant}}\]"
+    eq5 = r"\[E_{saved}=\frac{q_{saved}}{COP \cdot 1000}\;\;[\mathrm{kWh/m^2\ per\ hour}]\]"
     inputs = inputs or ModelInputs()
     assumptions_block = _roof_assumptions_block(inputs)
     simulation_inputs_block = _simulation_inputs_block(inputs)
@@ -351,6 +485,14 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, input
       <details>
         <summary>{s['city'].title()} - Hourly And Monthly Benefits</summary>
         <div class=\"grid\" style=\"margin-top:10px;\">
+          <div class=\"card\">
+            <div class=\"label\">Average baseline roof surface temperature (all TMY hours)</div>
+            <div class=\"value\">{s['avg_baseline_roof_temp_c']:.2f} °C</div>
+          </div>
+          <div class=\"card\">
+            <div class=\"label\">Average ant-hair inspired roof surface temperature (all TMY hours)</div>
+            <div class=\"value\">{s['avg_ant_roof_temp_c']:.2f} °C</div>
+          </div>
           <div class=\"card\">
             <div class=\"label\">Average roof temperature drop (all TMY hours)</div>
             <div class=\"value ok\">{s['avg_temp_drop_c']:.2f} °C</div>
@@ -416,16 +558,19 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, input
 </head>
 <body>
   <div class="wrap">
-    <div class="nav"><a href="../Reports/Hourly analysis/index.html">Back to Hourly Analysis</a></div>
+    <div class="nav"><a href="index.html">Section Index</a><a href="../index.html">Hourly Analysis</a></div>
     <div class="title">Roof Hourly Benefit Analysis From PVGIS TMY</div>
     <p class="subtitle">Cities: {city_names}. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
     <details open>
-      <summary>Equations Used</summary>
+      <summary>Hourly Roof Benefit Equations Used</summary>
+      <p class="subtitle" style="margin: 8px 0 10px;">Each PVGIS hour is solved twice, once for the baseline roof and once for the ant-inspired roof, using the same weather inputs and different optical properties.</p>
+      <div class="eq">{eq0}</div>
       <div class="eq">{eq1}</div>
-      <div class="eq">{eq1b}</div>
       <div class="eq">{eq2}</div>
       <div class="eq">{eq3}</div>
+      <div class="eq">{eq4}</div>
+      <div class="eq">{eq5}</div>
     </details>
 
     {simulation_inputs_block}
@@ -454,11 +599,13 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, input
 </body>
 </html>
 """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
 
 def write_hourly_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
+    path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = list(rows[0].keys())
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -498,13 +645,13 @@ def main() -> None:
         cities = [c.strip().lower() for c in args.cities.split(",") if c.strip()]
         summaries: list[dict[str, Any]] = []
 
-        html_path = args.html or Path("ant_roof_pvgis_hourly_report.html")
+        html_path = args.html or HOURLY_ROOF_HTML_DIR / "ant_roof_pvgis_hourly_report.html"
 
         for city in cities:
             hourly_rows, summary = hourly_analysis_for_city(city, args)
             summaries.append(summary)
-            csv_name = f"roof_hourly_{city}.csv"
-            write_hourly_csv(Path(csv_name), hourly_rows)
+            csv_path = HOURLY_ANALYSIS_DIR / f"roof_hourly_{city}.csv"
+            write_hourly_csv(csv_path, hourly_rows)
 
         report_inputs = ModelInputs(
             sky_temp_c=args.ambient_c - args.sky_offset_c,
@@ -518,6 +665,7 @@ def main() -> None:
             cooling_cop=args.cop,
         )
         render_hourly_html(summaries, html_path, report_inputs)
+        build_hourly_analysis_index(HOURLY_ANALYSIS_DIR)
         print("Roof PVGIS hourly analysis complete")
         for s in summaries:
             print(f"{s['city'].title()}: avg drop {s['avg_temp_drop_c']:.2f} C, annual {s['annual_kwh_m2']:.2f} kWh/m^2/year")
@@ -552,6 +700,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
 

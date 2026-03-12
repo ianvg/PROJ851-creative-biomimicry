@@ -16,3 +16,5 @@ Outputs (PVGIS mode):
 - `roof_hourly_cairo.csv`
 
 The hourly report includes LaTeX equations, monthly totals, and average benefit by hour-of-day.
+
+The Python entry point is `simple_roof_analysis.py`.

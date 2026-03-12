@@ -21,6 +21,8 @@ CITY_COORDS = {
     "marseille": (43.2965, 5.3698),
     "cairo": (30.0444, 31.2357),
 }
+HOURLY_ANALYSIS_DIR = Path(__file__).resolve().parent / "Reports" / "Hourly analysis"
+HOURLY_ROOF_HTML_DIR = HOURLY_ANALYSIS_DIR / "Roof analysis"
 
 
 @dataclass
@@ -765,7 +767,7 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
 </head>
 <body>
   <div class=\"wrap\">
-    <div class=\"nav\"><a href=\"index.html\">Home</a><a href=\"interactive_roof_report.html\">Interactive Roof Report</a><a href=\"ant_roof_cooling_report.html\">Roof Cooling Report</a><a href=\"hat_analysis_report.html\">Hat Analysis Report</a></div>
+    <div class=\"nav\"><a href=\"../index.html\">Reports Home</a><a href=\"index.html\">Hourly Analysis</a><a href=\"../interactive_roof_report.html\">Interactive Roof Report</a><a href=\"../ant_roof_cooling_report.html\">Roof Cooling Report</a><a href=\"../hat_analysis_report.html\">Hat Analysis Report</a></div>
     <div class=\"title\">Roof Hourly Benefit Analysis From PVGIS TMY</div>
     <p class=\"subtitle\">Cities: {city_names}. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
@@ -793,11 +795,138 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
 def write_hourly_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
+    path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = list(rows[0].keys())
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def build_hourly_analysis_index(output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    roof_dir = output_dir / "Roof analysis"
+    hat_dir = output_dir / "Hat analysis"
+    roof_dir.mkdir(parents=True, exist_ok=True)
+    hat_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_cards: list[str] = []
+    for path in sorted(output_dir.glob("*.csv"), key=lambda item: item.name.lower()):
+        csv_cards.append(
+            f'      <a class="card" href="{path.name}"><div class="name">{path.name}</div><p class="desc">Hourly CSV data</p></a>'
+        )
+
+    for folder_name, section_title, section_desc in (
+        ("Roof analysis", "Roof hourly HTML reports", "Roof hourly reports grouped in one folder."),
+        ("Hat analysis", "Hat hourly HTML reports", "Hat hourly reports grouped in one folder."),
+    ):
+        section_dir = output_dir / folder_name
+        report_cards = []
+        for path in sorted(section_dir.glob("*.html"), key=lambda item: item.name.lower()):
+            if path.name == "index.html":
+                continue
+            report_cards.append(
+                f'      <a class="card" href="{path.name}"><div class="name">{path.name}</div><p class="desc">Hourly HTML report</p></a>'
+            )
+        section_html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{section_title}</title>
+  <style>
+    :root {{
+      --bg: #f2f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }}
+    .wrap {{ max-width: 920px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }}
+    .nav a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
+    .title {{ font-size: 2rem; font-weight: 700; margin: 0 0 8px; }}
+    .subtitle {{ margin: 0 0 18px; color: var(--muted); }}
+    .list {{ display: grid; gap: 14px; }}
+    .card {{ display: block; padding: 16px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none; }}
+    .card:hover {{ border-color: var(--accent); }}
+    .name {{ color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }}
+    .desc {{ color: var(--muted); margin: 0; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="../index.html">Hourly Analysis</a><a href="../../index.html">Reports Home</a></div>
+    <p class="title">{section_title}</p>
+    <p class="subtitle">{section_desc}</p>
+    <div class="list">
+{chr(10).join(report_cards) if report_cards else '      <div class="card"><div class="name">No reports yet</div><p class="desc">Run an hourly analysis to populate this folder.</p></div>'}
+    </div>
+  </div>
+</body>
+</html>
+"""
+        (section_dir / "index.html").write_text(section_html, encoding="utf-8")
+
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hourly Analysis Reports</title>
+  <style>
+    :root {{
+      --bg: #f2f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }}
+    .wrap {{ max-width: 920px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }}
+    .nav a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
+    .title {{ font-size: 2rem; font-weight: 700; margin: 0 0 8px; }}
+    .subtitle {{ margin: 0 0 18px; color: var(--muted); }}
+    .list {{ display: grid; gap: 14px; }}
+    .card {{ display: block; padding: 16px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none; }}
+    .card:hover {{ border-color: var(--accent); }}
+    .name {{ color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }}
+    .desc {{ color: var(--muted); margin: 0; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="../index.html">Reports Home</a><a href="../interactive_roof_report.html">Interactive Roof Report</a></div>
+    <p class="title">Hourly Analysis</p>
+    <p class="subtitle">Hourly roof and hat PVGIS outputs with separate HTML report folders.</p>
+    <div class="list">
+      <a class="card" href="Roof analysis/index.html"><div class="name">Roof analysis</div><p class="desc">Roof hourly HTML reports</p></a>
+      <a class="card" href="Hat analysis/index.html"><div class="name">Hat analysis</div><p class="desc">Hat hourly HTML reports</p></a>
+{chr(10).join(csv_cards) if csv_cards else '      <div class="card"><div class="name">No CSV outputs yet</div><p class="desc">Run an hourly analysis to generate hourly CSV files.</p></div>'}
+    </div>
+  </div>
+</body>
+</html>
+"""
+    (output_dir / "index.html").write_text(html, encoding="utf-8")
 
 
 def parse_args() -> argparse.Namespace:
@@ -838,13 +967,13 @@ def main() -> None:
         cities = [c.strip().lower() for c in args.cities.split(",") if c.strip()]
         summaries: list[dict[str, Any]] = []
 
-        html_path = args.html or Path("Reports") / "ant_roof_pvgis_hourly_report.html"
+        html_path = args.html or HOURLY_ROOF_HTML_DIR / "ant_roof_pvgis_hourly_report.html"
 
         for city in cities:
             hourly_rows, summary = hourly_analysis_for_city(city, args)
             summaries.append(summary)
-            csv_name = f"roof_hourly_{city}.csv"
-            write_hourly_csv(Path(csv_name), hourly_rows)
+            csv_path = HOURLY_ANALYSIS_DIR / f"roof_hourly_{city}.csv"
+            write_hourly_csv(csv_path, hourly_rows)
 
         geometry_inputs = ModelInputs(
             building_width_m=7.0,
@@ -853,6 +982,7 @@ def main() -> None:
             west_wall_height_m=3.0,
         )
         render_hourly_html(summaries, html_path, geometry_inputs)
+        build_hourly_analysis_index(HOURLY_ANALYSIS_DIR)
         print("Roof PVGIS hourly analysis complete")
         for s in summaries:
             print(f"{s['city'].title()}: avg drop {s['avg_temp_drop_c']:.2f} C, annual savings {s['annual_saved_kwh_building']:.2f} kWh/year")

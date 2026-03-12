@@ -18,6 +18,9 @@ SIGMA = 5.670374419e-8
 ROOT = Path(__file__).resolve().parent
 ROOF_DIR = ROOT / "roof analysis"
 HAT_DIR = ROOT / "hat analysis"
+HOURLY_ANALYSIS_DIR = ROOT / "Reports" / "Hourly analysis"
+HOURLY_ROOF_HTML_DIR = HOURLY_ANALYSIS_DIR / "Roof analysis"
+HOURLY_HAT_HTML_DIR = HOURLY_ANALYSIS_DIR / "Hat analysis"
 
 
 @dataclass
@@ -231,7 +234,145 @@ def hour_rows(hourly: list[dict[str, float]]) -> str:
     )
 
 
+def build_hourly_analysis_index(output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    roof_dir = output_dir / "Roof analysis"
+    hat_dir = output_dir / "Hat analysis"
+    roof_dir.mkdir(parents=True, exist_ok=True)
+    hat_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_cards: list[str] = []
+    for path in sorted(output_dir.glob("*.csv"), key=lambda item: item.name.lower()):
+        csv_cards.append(
+            f'      <a class="card" href="{path.name}"><div class="name">{path.name}</div><p class="desc">Hourly CSV data</p></a>'
+        )
+
+    sections = [
+        ("Roof analysis", "Roof hourly HTML reports", "Roof hourly reports grouped in one folder."),
+        ("Hat analysis", "Hat hourly HTML reports", "Hat hourly reports grouped in one folder."),
+    ]
+
+    for folder_name, section_title, section_desc in sections:
+        section_dir = output_dir / folder_name
+        report_cards: list[str] = []
+        for path in sorted(section_dir.glob("*.html"), key=lambda item: item.name.lower()):
+            if path.name == "index.html":
+                continue
+            report_cards.append(
+                f'      <a class="card" href="{path.name}"><div class="name">{path.name}</div><p class="desc">Hourly HTML report</p></a>'
+            )
+        section_html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{section_title}</title>
+  <style>
+    :root {{
+      --bg: #f2f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }}
+    .wrap {{ max-width: 920px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }}
+    .nav a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
+    .title {{ font-size: 2rem; font-weight: 700; margin: 0 0 8px; }}
+    .subtitle {{ margin: 0 0 18px; color: var(--muted); }}
+    .list {{ display: grid; gap: 14px; }}
+    .card {{ display: block; padding: 16px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none; }}
+    .card:hover {{ border-color: var(--accent); }}
+    .name {{ color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }}
+    .desc {{ color: var(--muted); margin: 0; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="../index.html">Hourly Analysis</a><a href="../../index.html">Reports Home</a></div>
+    <p class="title">{section_title}</p>
+    <p class="subtitle">{section_desc}</p>
+    <div class="list">
+{chr(10).join(report_cards) if report_cards else '      <div class="card"><div class="name">No reports yet</div><p class="desc">Run an hourly analysis to populate this folder.</p></div>'}
+    </div>
+  </div>
+</body>
+</html>
+"""
+        (section_dir / "index.html").write_text(section_html, encoding="utf-8")
+
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hourly Analysis Reports</title>
+  <style>
+    :root {{
+      --bg: #f2f5f4;
+      --card: #ffffff;
+      --ink: #1d2a2a;
+      --muted: #5b6b6b;
+      --accent: #0b7285;
+      --border: #d7e1dc;
+    }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef6f4 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }}
+    .wrap {{ max-width: 920px; margin: 0 auto; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }}
+    .nav a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
+    .nav a:hover {{ text-decoration: underline; }}
+    .title {{ font-size: 2rem; font-weight: 700; margin: 0 0 8px; }}
+    .subtitle {{ margin: 0 0 18px; color: var(--muted); }}
+    .list {{ display: grid; gap: 14px; }}
+    .card {{ display: block; padding: 16px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none; }}
+    .card:hover {{ border-color: var(--accent); }}
+    .name {{ color: var(--accent); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }}
+    .desc {{ color: var(--muted); margin: 0; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="../index.html">Reports Home</a><a href="../interactive_roof_report.html">Interactive Roof Report</a></div>
+    <p class="title">Hourly Analysis</p>
+    <p class="subtitle">Hourly roof and hat PVGIS outputs with separate HTML report folders.</p>
+    <div class="list">
+      <a class="card" href="Roof analysis/index.html"><div class="name">Roof analysis</div><p class="desc">Roof hourly HTML reports</p></a>
+      <a class="card" href="Hat analysis/index.html"><div class="name">Hat analysis</div><p class="desc">Hat hourly HTML reports</p></a>
+{chr(10).join(csv_cards) if csv_cards else '      <div class="card"><div class="name">No CSV outputs yet</div><p class="desc">Run an hourly analysis to generate hourly CSV files.</p></div>'}
+    </div>
+  </div>
+</body>
+</html>
+"""
+    (output_dir / "index.html").write_text(html, encoding="utf-8")
+
+
 def render_report(title: str, subtitle: str, eq1: str, eq2: str, summary: dict[str, Any], out_path: Path) -> None:
+    temp_cards = ""
+    if "avg_baseline_roof_temp_c" in summary and "avg_ant_roof_temp_c" in summary:
+        temp_cards = f"""
+      <div class=\"card\"><div class=\"label\">Average baseline roof surface temperature</div><div class=\"value\">{summary['avg_baseline_roof_temp_c']:.2f} °C</div></div>
+      <div class=\"card\"><div class=\"label\">Average ant-hair inspired roof surface temperature</div><div class=\"value\">{summary['avg_ant_roof_temp_c']:.2f} °C</div></div>"""
+    elif "avg_baseline_shell_temp_c" in summary and "avg_ant_shell_temp_c" in summary:
+        temp_cards = f"""
+      <div class=\"card\"><div class=\"label\">Average baseline hat surface temperature</div><div class=\"value\">{summary['avg_baseline_shell_temp_c']:.2f} °C</div></div>
+      <div class=\"card\"><div class=\"label\">Average ant-hair inspired hat surface temperature</div><div class=\"value\">{summary['avg_ant_shell_temp_c']:.2f} °C</div></div>"""
+
     html = f"""<!doctype html>
 <html lang=\"en\">
 <head>
@@ -266,11 +407,12 @@ def render_report(title: str, subtitle: str, eq1: str, eq2: str, summary: dict[s
 </head>
 <body>
   <div class=\"wrap\">
-    <div class=\"nav\"><a href=\"../Reports/Hourly analysis/index.html\">Back to Hourly Analysis</a></div>
+    <div class=\"nav\"><a href=\"index.html\">Section Index</a><a href=\"../index.html\">Hourly Analysis</a></div>
     <div class=\"title\">{title}</div>
     <p class=\"subtitle\">{subtitle}</p>
 
     <div class=\"grid\">
+      {temp_cards}
       <div class=\"card\"><div class=\"label\">Average Temperature Drop</div><div class=\"value\">{summary['avg_temp_drop_c']:.2f} °C</div></div>
       <div class=\"card\"><div class=\"label\">Annual Savings</div><div class=\"value\">{summary['annual_kwh_m2']:.2f} kWh/m²/year</div></div>
     </div>
@@ -294,6 +436,7 @@ def render_report(title: str, subtitle: str, eq1: str, eq2: str, summary: dict[s
 </body>
 </html>
 """
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html, encoding="utf-8")
 
 
@@ -387,27 +530,48 @@ def run_location_analysis(lat: float, lon: float, label: str) -> dict[str, str]:
     if not roof_rows or not hat_rows:
         raise ValueError("No valid hourly results were generated for this location.")
 
-    def build_summary(rows: list[dict[str, Any]], monthly: dict[int, float], bins_t: dict[int, list[float]], bins_e: dict[int, list[float]], key: str) -> dict[str, Any]:
+    def build_summary(
+        rows: list[dict[str, Any]],
+        monthly: dict[int, float],
+        bins_t: dict[int, list[float]],
+        bins_e: dict[int, list[float]],
+        key: str,
+        baseline_temp_key: str | None = None,
+        ant_temp_key: str | None = None,
+    ) -> dict[str, Any]:
         hourly_avg = []
         for h in range(24):
             tv = bins_t.get(h, [0.0])
             ev = bins_e.get(h, [0.0])
             hourly_avg.append({"hour": h, "avg_temp_drop_c": sum(tv) / len(tv), "avg_kwh_m2_h": sum(ev) / len(ev)})
-        return {
+        summary = {
             "annual_kwh_m2": sum(r[key] for r in rows),
             "avg_temp_drop_c": sum(r["temp_drop_c"] for r in rows) / max(1, len(rows)),
             "monthly_kwh": dict(sorted(monthly.items())),
             "hourly_avg": hourly_avg,
         }
+        if baseline_temp_key and ant_temp_key:
+            summary["avg_baseline_roof_temp_c"] = sum(r[baseline_temp_key] for r in rows) / max(1, len(rows))
+            summary["avg_ant_roof_temp_c"] = sum(r[ant_temp_key] for r in rows) / max(1, len(rows))
+        return summary
 
-    roof_summary = build_summary(roof_rows, roof_monthly, roof_hour_bins_t, roof_hour_bins_e, "electric_saved_kwh_m2_hour")
+    roof_summary = build_summary(
+        roof_rows,
+        roof_monthly,
+        roof_hour_bins_t,
+        roof_hour_bins_e,
+        "electric_saved_kwh_m2_hour",
+        baseline_temp_key="baseline_roof_temp_c",
+        ant_temp_key="ant_roof_temp_c",
+    )
     hat_summary = build_summary(hat_rows, hat_monthly, hat_hour_bins_t, hat_hour_bins_e, "equiv_electric_saved_kwh_m2_hour")
+    hat_summary["avg_baseline_shell_temp_c"] = sum(r["baseline_shell_temp_c"] for r in hat_rows) / max(1, len(hat_rows))
+    hat_summary["avg_ant_shell_temp_c"] = sum(r["ant_shell_temp_c"] for r in hat_rows) / max(1, len(hat_rows))
 
-    ROOF_DIR.mkdir(parents=True, exist_ok=True)
-    HAT_DIR.mkdir(parents=True, exist_ok=True)
+    HOURLY_ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
 
-    roof_csv = ROOF_DIR / f"roof_hourly_{slug}.csv"
-    hat_csv = HAT_DIR / f"hat_hourly_{slug}.csv"
+    roof_csv = HOURLY_ANALYSIS_DIR / f"roof_hourly_{slug}.csv"
+    hat_csv = HOURLY_ANALYSIS_DIR / f"hat_hourly_{slug}.csv"
 
     with roof_csv.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(roof_rows[0].keys()))
@@ -419,8 +583,8 @@ def run_location_analysis(lat: float, lon: float, label: str) -> dict[str, str]:
         w.writeheader()
         w.writerows(hat_rows)
 
-    roof_html = ROOF_DIR / f"ant_roof_pvgis_hourly_{slug}.html"
-    hat_html = HAT_DIR / f"hat_pvgis_hourly_{slug}.html"
+    roof_html = HOURLY_ROOF_HTML_DIR / f"ant_roof_pvgis_hourly_{slug}.html"
+    hat_html = HOURLY_HAT_HTML_DIR / f"hat_pvgis_hourly_{slug}.html"
 
     render_report(
         title=f"Roof Hourly Benefit Analysis - {label}",
@@ -438,6 +602,7 @@ def run_location_analysis(lat: float, lon: float, label: str) -> dict[str, str]:
         summary=hat_summary,
         out_path=hat_html,
     )
+    build_hourly_analysis_index(HOURLY_ANALYSIS_DIR)
 
     return {
         "roof_html": str(roof_html),
