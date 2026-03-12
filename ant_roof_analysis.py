@@ -293,9 +293,13 @@ def hourly_analysis_for_city(city: str, args: argparse.Namespace) -> tuple[list[
     rows = fetch_pvgis_tmy(city, Path(args.pvgis_cache_dir))
 
     hourly_out: list[dict[str, Any]] = []
-    monthly_kwh = defaultdict(float)
+    monthly_baseline_kwh = defaultdict(float)
+    monthly_ant_kwh = defaultdict(float)
+    monthly_saved_kwh = defaultdict(float)
     hour_bins_temp = defaultdict(list)
-    hour_bins_kwh = defaultdict(list)
+    hour_bins_baseline_kwh = defaultdict(list)
+    hour_bins_ant_kwh = defaultdict(list)
+    hour_bins_saved_kwh = defaultdict(list)
 
     for row in rows:
         raw_time = str(row.get("time(UTC)") or row.get("time") or row.get("time_utc") or "20010101:0000")
@@ -329,7 +333,9 @@ def hourly_analysis_for_city(city: str, args: argparse.Namespace) -> tuple[list[
         )
 
         result = compute_results(inputs)
-        kwh_hour = result.building_electric_savings_kwh_hour
+        baseline_kwh_hour = (result.baseline_building_cooling_w / args.cop) / 1000.0
+        ant_kwh_hour = (result.ant_building_cooling_w / args.cop) / 1000.0
+        saved_kwh_hour = result.building_electric_savings_kwh_hour
 
         hourly_out.append(
             {
@@ -348,33 +354,49 @@ def hourly_analysis_for_city(city: str, args: argparse.Namespace) -> tuple[list[
                 "baseline_building_cooling_w": result.baseline_building_cooling_w,
                 "ant_building_cooling_w": result.ant_building_cooling_w,
                 "building_cooling_saved_w": result.building_cooling_power_saved_w,
-                "building_electric_saved_kwh_hour": kwh_hour,
+                "baseline_building_electric_kwh_hour": baseline_kwh_hour,
+                "ant_building_electric_kwh_hour": ant_kwh_hour,
+                "building_electric_saved_kwh_hour": saved_kwh_hour,
             }
         )
 
-        monthly_kwh[month] += kwh_hour
+        monthly_baseline_kwh[month] += baseline_kwh_hour
+        monthly_ant_kwh[month] += ant_kwh_hour
+        monthly_saved_kwh[month] += saved_kwh_hour
         hour_bins_temp[hour].append(result.roof_temp_drop_c)
-        hour_bins_kwh[hour].append(kwh_hour)
+        hour_bins_baseline_kwh[hour].append(baseline_kwh_hour)
+        hour_bins_ant_kwh[hour].append(ant_kwh_hour)
+        hour_bins_saved_kwh[hour].append(saved_kwh_hour)
 
-    annual_kwh = sum(r["building_electric_saved_kwh_hour"] for r in hourly_out)
+    annual_baseline_kwh = sum(r["baseline_building_electric_kwh_hour"] for r in hourly_out)
+    annual_ant_kwh = sum(r["ant_building_electric_kwh_hour"] for r in hourly_out)
+    annual_saved_kwh = sum(r["building_electric_saved_kwh_hour"] for r in hourly_out)
     avg_drop = sum(r["temp_drop_c"] for r in hourly_out) / len(hourly_out)
 
     hourly_avg = []
     for hour in range(24):
         t_vals = hour_bins_temp.get(hour, [0.0])
-        e_vals = hour_bins_kwh.get(hour, [0.0])
+        baseline_vals = hour_bins_baseline_kwh.get(hour, [0.0])
+        ant_vals = hour_bins_ant_kwh.get(hour, [0.0])
+        saved_vals = hour_bins_saved_kwh.get(hour, [0.0])
         hourly_avg.append(
             {
                 "hour": hour,
                 "avg_temp_drop_c": sum(t_vals) / len(t_vals),
-                "avg_building_kwh_hour": sum(e_vals) / len(e_vals),
+                "avg_baseline_building_kwh_hour": sum(baseline_vals) / len(baseline_vals),
+                "avg_ant_building_kwh_hour": sum(ant_vals) / len(ant_vals),
+                "avg_building_saved_kwh_hour": sum(saved_vals) / len(saved_vals),
             }
         )
 
     summary = {
         "city": city,
-        "annual_kwh_building": annual_kwh,
-        "monthly_kwh_building": dict(sorted(monthly_kwh.items())),
+        "annual_baseline_kwh_building": annual_baseline_kwh,
+        "annual_ant_kwh_building": annual_ant_kwh,
+        "annual_saved_kwh_building": annual_saved_kwh,
+        "monthly_baseline_kwh_building": dict(sorted(monthly_baseline_kwh.items())),
+        "monthly_ant_kwh_building": dict(sorted(monthly_ant_kwh.items())),
+        "monthly_saved_kwh_building": dict(sorted(monthly_saved_kwh.items())),
         "avg_temp_drop_c": avg_drop,
         "hourly_avg": hourly_avg,
     }
@@ -392,9 +414,37 @@ def _hourly_rows(hourly_avg: list[dict[str, float]]) -> str:
     rows = []
     for r in hourly_avg:
         rows.append(
-            f"<tr><td>{r['hour']:02d}:00</td><td>{r['avg_temp_drop_c']:.2f}</td><td>{r['avg_building_kwh_hour']:.4f}</td></tr>"
+            "<tr>"
+            f"<td>{r['hour']:02d}:00</td>"
+            f"<td>{r['avg_temp_drop_c']:.2f}</td>"
+            f"<td>{r['avg_baseline_building_kwh_hour']:.4f}</td>"
+            f"<td>{r['avg_ant_building_kwh_hour']:.4f}</td>"
+            f"<td>{r['avg_building_saved_kwh_hour']:.4f}</td>"
+            "</tr>"
         )
     return "\n".join(rows)
+
+
+def _hourly_energy_plot(hourly_avg: list[dict[str, float]], city: str) -> str:
+    hours = [f"{r['hour']:02d}:00" for r in hourly_avg]
+    baseline = [r["avg_baseline_building_kwh_hour"] for r in hourly_avg]
+    ant = [r["avg_ant_building_kwh_hour"] for r in hourly_avg]
+    saved = [r["avg_building_saved_kwh_hour"] for r in hourly_avg]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=hours, y=baseline, mode="lines", name="Before", line={"color": "#c26d1f", "width": 3}))
+    fig.add_trace(go.Scatter(x=hours, y=ant, mode="lines", name="After", line={"color": "#1f7a8c", "width": 3}))
+    fig.add_trace(go.Scatter(x=hours, y=saved, mode="lines", name="Savings", line={"color": "#2b8a3e", "width": 3}))
+    fig.update_layout(
+        title=f"{city.title()} Building Electricity By Hour",
+        margin={"l": 40, "r": 20, "t": 48, "b": 40},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+        xaxis={"title": "Hour of day"},
+        yaxis={"title": "Electricity (kWh/h)", "rangemode": "tozero"},
+    )
+    return fig.to_html(full_html=False, include_plotlyjs=False, config={"responsive": True, "displaylogo": False})
 
 
 def _mesh_from_faces(vertices: list[tuple[float, float, float]], faces: list[tuple[int, int, int]]) -> trimesh.Trimesh:
@@ -547,22 +597,35 @@ def _building_geometry_plot(inputs: ModelInputs) -> str:
 
 
 
-def single_run_summary(result: ModelResults) -> dict[str, Any]:
-    monthly_kwh = result.building_electric_savings_kwh_hour * 24.0 * 30.0
-    annual_kwh = result.building_electric_savings_kwh_hour * 24.0 * 365.0
+def single_run_summary(result: ModelResults, inputs: ModelInputs) -> dict[str, Any]:
+    baseline_kwh_hour = (result.baseline_building_cooling_w / inputs.cooling_cop) / 1000.0
+    ant_kwh_hour = (result.ant_building_cooling_w / inputs.cooling_cop) / 1000.0
+    saved_kwh_hour = result.building_electric_savings_kwh_hour
+    monthly_baseline_kwh = baseline_kwh_hour * 24.0 * 30.0
+    monthly_ant_kwh = ant_kwh_hour * 24.0 * 30.0
+    monthly_saved_kwh = saved_kwh_hour * 24.0 * 30.0
+    annual_baseline_kwh = baseline_kwh_hour * 24.0 * 365.0
+    annual_ant_kwh = ant_kwh_hour * 24.0 * 365.0
+    annual_saved_kwh = saved_kwh_hour * 24.0 * 365.0
     hourly_avg = [
         {
             "hour": hour,
             "avg_temp_drop_c": result.roof_temp_drop_c,
-            "avg_building_kwh_hour": result.building_electric_savings_kwh_hour,
+            "avg_baseline_building_kwh_hour": baseline_kwh_hour,
+            "avg_ant_building_kwh_hour": ant_kwh_hour,
+            "avg_building_saved_kwh_hour": saved_kwh_hour,
         }
         for hour in range(24)
     ]
-    h_values = building_heat_loss_coefficients(ModelInputs())
+    h_values = building_heat_loss_coefficients(inputs)
     return {
         "city": "single case",
-        "annual_kwh_building": annual_kwh,
-        "monthly_kwh_building": {month: monthly_kwh for month in range(1, 13)},
+        "annual_baseline_kwh_building": annual_baseline_kwh,
+        "annual_ant_kwh_building": annual_ant_kwh,
+        "annual_saved_kwh_building": annual_saved_kwh,
+        "monthly_baseline_kwh_building": {month: monthly_baseline_kwh for month in range(1, 13)},
+        "monthly_ant_kwh_building": {month: monthly_ant_kwh for month in range(1, 13)},
+        "monthly_saved_kwh_building": {month: monthly_saved_kwh for month in range(1, 13)},
         "avg_temp_drop_c": result.roof_temp_drop_c,
         "hourly_avg": hourly_avg,
         "roof_h_before_w_k": h_values["roof_h_w_k"],
@@ -576,8 +639,6 @@ def single_run_summary(result: ModelResults) -> dict[str, Any]:
         "total_h_before_w_k": h_values["total_h_w_k"],
         "total_h_after_w_k": h_values["total_h_w_k"],
     }
-
-
 def _roof_assumptions_block(inputs: ModelInputs) -> str:
     eq_base_1 = rf"$$\alpha_{{base}} = {inputs.baseline_solar_absorptance:.2f}, \quad \varepsilon_{{base}} = {inputs.baseline_ir_emissivity:.2f}$$"
     eq_base_2 = rf"$$q_{{roof,base}} = {inputs.baseline_solar_absorptance:.2f}G + h(T_{{air}} - T_s) + q_{{LWR,base}}$$"
@@ -614,9 +675,10 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
     geometry_block = _building_geometry_plot(geometry_inputs)
     assumptions_block = _roof_assumptions_block(geometry_inputs)
 
-
+    city_names = ", ".join(s["city"].title() for s in summaries)
     city_blocks = []
     for s in summaries:
+        energy_plot_div = _hourly_energy_plot(s["hourly_avg"], s["city"])
         city_blocks.append(
             f"""
       <details>
@@ -624,21 +686,33 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
         <div class=\"grid\" style=\"margin-top:10px;\">
           <div class=\"card\">
             <div class=\"label\">Average roof temperature drop (all TMY hours)</div>
-            <div class="value ok">{s['avg_temp_drop_c']:.2f} deg C</div>
+            <div class=\"value ok\">{s['avg_temp_drop_c']:.2f} deg C</div>
           </div>
           <div class=\"card\">
-            <div class="label">Annual building electricity savings</div>
-            <div class="value ok">{s['annual_kwh_building']:.2f} kWh/year</div>
+            <div class=\"label\">Annual building electricity before</div>
+            <div class=\"value\">{s['annual_baseline_kwh_building']:.2f} kWh/year</div>
+          </div>
+          <div class=\"card\">
+            <div class=\"label\">Annual building electricity after</div>
+            <div class=\"value\">{s['annual_ant_kwh_building']:.2f} kWh/year</div>
+          </div>
+          <div class=\"card\">
+            <div class=\"label\">Annual building electricity savings</div>
+            <div class=\"value ok\">{s['annual_saved_kwh_building']:.2f} kWh/year</div>
           </div>
         </div>
-        <h3>Monthly Building Savings (kWh)</h3>
+        <h3>Monthly Building Electricity Savings (kWh)</h3>
         <table>
           <thead><tr><th>Month</th><th>kWh</th></tr></thead>
-          <tbody>{_monthly_rows(s['monthly_kwh_building'])}</tbody>
+          <tbody>{_monthly_rows(s['monthly_saved_kwh_building'])}</tbody>
         </table>
-        <h3>Average Benefit By Hour Of Day</h3>
+        <h3>Average Building Electricity By Hour Of Day</h3>
+        <div class=\"card\" style=\"margin-top:8px;\">
+          <div class=\"label\">Before vs after vs savings on the same hourly graph</div>
+          <div class=\"plotly-wrap\">{energy_plot_div}</div>
+        </div>
         <table>
-          <thead><tr><th>Hour</th><th>Avg Temp Drop (deg C)</th><th>Avg Building Savings (kWh/h)</th></tr></thead>
+          <thead><tr><th>Hour</th><th>Avg Temp Drop (deg C)</th><th>Avg Before (kWh/h)</th><th>Avg After (kWh/h)</th><th>Avg Savings (kWh/h)</th></tr></thead>
           <tbody>{_hourly_rows(s['hourly_avg'])}</tbody>
         </table>
       </details>
@@ -654,11 +728,12 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
   <title>Roof PVGIS Hourly Analysis</title>
   <script>
     window.MathJax = {{
-      tex: {{ inlineMath: [['$', '$'], ['\(', '\)']], displayMath: [['$$', '$$'], ['\[', '\]']] }},
+      tex: {{ inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }},
       svg: {{ fontCache: 'global' }}
     }};
   </script>
   <script defer src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>
+  <script src=\"https://cdn.plot.ly/plotly-2.35.2.min.js\"></script>
   <script>
     window.addEventListener('load', function () {{
       if (window.MathJax && window.MathJax.typesetPromise) {{
@@ -690,9 +765,9 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
 </head>
 <body>
   <div class=\"wrap\">
-    <div class=\"nav\"><a href="index.html">Home</a><a href="interactive_roof_report.html">Interactive Roof Report</a><a href="ant_roof_cooling_report.html">Roof Cooling Report</a><a href="hat_analysis_report.html">Hat Analysis Report</a></div>
+    <div class=\"nav\"><a href=\"index.html\">Home</a><a href=\"interactive_roof_report.html\">Interactive Roof Report</a><a href=\"ant_roof_cooling_report.html\">Roof Cooling Report</a><a href=\"hat_analysis_report.html\">Hat Analysis Report</a></div>
     <div class=\"title\">Roof Hourly Benefit Analysis From PVGIS TMY</div>
-    <p class=\"subtitle\">Cities: Marseille and Cairo. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
+    <p class=\"subtitle\">Cities: {city_names}. Hourly simulation uses PVGIS TMY solar irradiance, air temperature, and wind.</p>
 
 
     {geometry_block}
@@ -700,11 +775,11 @@ def render_hourly_html(summaries: list[dict[str, Any]], output_path: Path, geome
     <details open>
       <summary>Equations Used</summary>
       <div class=\"eq\">{eq1}</div>
-      <div class="eq">{eq1b}</div>
-      <div class="eq">{eq1c}</div>
-      <div class="eq">{eq1d}</div>
+      <div class=\"eq\">{eq1b}</div>
+      <div class=\"eq\">{eq1c}</div>
+      <div class=\"eq\">{eq1d}</div>
       <div class=\"eq\">{eq2}</div>
-      <div class="eq">{eq3}</div>
+      <div class=\"eq\">{eq3}</div>
     </details>
 
     {''.join(city_blocks)}
@@ -728,7 +803,7 @@ def write_hourly_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Roof analysis with optional PVGIS TMY hourly mode.")
     p.add_argument("--use-pvgis", action="store_true", help="Fetch PVGIS TMY and run hourly analysis.")
-    p.add_argument("--cities", default="marseille,cairo", help="Comma-separated city names (marseille,cairo).")
+    p.add_argument("--cities", default="marseille", help="Comma-separated city names (default: marseille).")
     p.add_argument("--pvgis-cache-dir", default="pvgis_cache")
     p.add_argument("--sky-offset-c", type=float, default=12.0, help="Sky temperature estimate offset from ambient.")
 
@@ -780,7 +855,7 @@ def main() -> None:
         render_hourly_html(summaries, html_path, geometry_inputs)
         print("Roof PVGIS hourly analysis complete")
         for s in summaries:
-            print(f"{s['city'].title()}: avg drop {s['avg_temp_drop_c']:.2f} C, annual {s['annual_kwh_building']:.2f} kWh/year")
+            print(f"{s['city'].title()}: avg drop {s['avg_temp_drop_c']:.2f} C, annual savings {s['annual_saved_kwh_building']:.2f} kWh/year")
         print(f"HTML report: {html_path.resolve()}")
         return
 
@@ -825,10 +900,9 @@ def main() -> None:
     print(f"Building electricity savings: {yearly:.2f} kWh/year")
 
     html_path = args.html or Path("Reports") / "interactive_roof_report.html"
-    render_hourly_html([single_run_summary(result)], html_path, inputs)
+    render_hourly_html([single_run_summary(result, inputs)], html_path, inputs)
     print(f"HTML report: {html_path.resolve()}")
 
 
 if __name__ == "__main__":
     main()
-
